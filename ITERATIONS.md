@@ -52,6 +52,36 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `podman-compose.yml` (nouveau) : déploiement selon la recette du serveur, ports 8080/8081.
     - `e2e/demo.spec.ts` : étape de démo ajoutée (non exécutée ici, cf. ci-dessus).
 
+## Itération 2 (ad hoc) : front cliquable des 4 écrans, données en mémoire
+
+- **Origine** : demande du développeur en cours de hackathon, hors plan initial : « faire la version complète avec tous les écrans, tout le flow, le design, pour tester » — 10 minutes annoncées, tour de test immédiat de l'équipe.
+- ⚠️ Avertissement donné avant de coder : 4 écrans + vraie base de données + vrai flow (mail réel, Outlook, Excel) ne tenaient pas dans 10 minutes. Compromis proposé et exécuté : un **front cliquable, données en mémoire côté client** (comme le prototype HTML), sans API ni persistance réelle.
+- **Dans le périmètre** :
+  - `frontend/src/app/page.tsx` : page convertie en composant client avec état de navigation entre 4 écrans (`dashboard`, `reporter`, `validation`, `mail`), état des séances en mémoire (`useState`).
+  - Écran **Reporter une séance** : formulaire (date, motif, précisions) repris du prototype, pour une séance choisie depuis le tableau de bord.
+  - Écran **Validation — Coordinatrice** : diff ancienne/nouvelle date, motif, liste des synchronisations automatiques (affichées, non réelles), boutons Valider / Refuser.
+  - Écran **Mail de rappel** : aperçu statique du mail avec bouton « Demander une reprogrammation » qui renvoie vers Reporter une séance.
+  - `frontend/src/data/seances.ts` : nouvelle fonction `traiterDemandeDeReport` (logique métier : valider lève la demande, change le statut en « reportée » et applique la nouvelle date ; refuser lève la demande sans toucher au statut/à la date).
+  - `frontend/src/app/page.module.css` : styles ajoutés pour les 3 nouveaux écrans (formulaire, bandeau de diff, lignes de notification, aperçu de mail, boutons), palette identique à l'itération 1.
+- **Hors périmètre (explicite, redit)** : le modèle de données imposé (19 entités), toute API/BDD réelle, l'écran « Qui êtes-vous ? », l'envoi de mail réel, la synchronisation Outlook/Excel réelle, l'historique réel. Rien n'est persistant : un rechargement de page réinitialise l'état.
+- **Critères d'acceptation** :
+  - Étant donné le tableau de bord, quand on clique sur « Voir → » d'une séance en attente de report, alors l'écran de validation s'affiche avec l'ancienne et la nouvelle date.
+  - Étant donné l'écran de validation, quand on clique sur « Valider le report » ou « Refuser », alors on revient au tableau de bord et la demande n'est plus signalée en attente.
+  - Étant donné le tableau de bord, quand on ouvre l'aperçu du mail de rappel, alors le bouton « Demander une reprogrammation » ouvre le formulaire de report.
+- **Codage estimé** : 10 minutes (budget annoncé par le développeur).
+- **Bilan** :
+  - Durée de codage réelle : 4 minutes (pas de dépassement, pas d'alarme à 8 minutes).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du HTML servi (titres des écrans présents) ; parcours non testé au clic dans un vrai navigateur par l'agent (pas d'accès visuel), à valider par le développeur.
+  - Tests unitaires : 2 ajoutés sur `traiterDemandeDeReport` (validation et refus), en plus des 2 existants — `npm test` : 4 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite (base `docker.io/library/...` déjà qualifiée), poussée, service recréé. Vérifié en local : `localhost:8080/` → 200, titre correct, `/health` et `/sante` → `ok` sur le front comme sur l'api (corps vérifié, pas la page de réveil).
+  - Démo (`e2e/demo.spec.ts`) : non mise à jour cette fois (budget consacré au flow, Playwright toujours inexécutable sur cette machine — cf. itération 1). Reporté à l'itération suivante si le temps le permet.
+  - **Modifications** :
+    - `frontend/src/data/seances.ts` : ajout de `traiterDemandeDeReport` — critères 1 et 2.
+    - `frontend/src/data/seances.test.ts` : 2 tests sur `traiterDemandeDeReport`.
+    - `frontend/src/app/page.tsx` : composant client, 4 écrans, navigation — critères 1, 2 et 3.
+    - `frontend/src/app/page.module.css` : styles des 3 nouveaux écrans.
+
 ## À venir (hors budget de cette session)
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant tout écran réel.
