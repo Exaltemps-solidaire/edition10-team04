@@ -605,6 +605,77 @@
   min-width: 0;
 }
 
+/* Écran Historique : timeline verticale */
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+}
+
+.timelineIconCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timelineIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.timelineIconCreation { background: #2563eb; }
+.timelineIconConfirmation { background: #16a34a; }
+.timelineIconReport { background: #f59e0b; }
+.timelineIconValidation { background: #1e3a8a; }
+.timelineIconRappel { background: #9333ea; }
+
+.timelineIconAVenir {
+  background: #fff;
+  border: 2px dashed #94a3b8;
+  color: #94a3b8;
+}
+
+.timelineLine {
+  flex: 1;
+  width: 2px;
+  min-height: 24px;
+  background: #e2e8f0;
+  margin-top: 4px;
+}
+
+.timelineContent {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+
+.timelineTitre {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.timelineMeta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.timelineActeur {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 8px;
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;

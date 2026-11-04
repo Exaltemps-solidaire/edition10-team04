@@ -192,12 +192,39 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : écran Notifications réel (3 cartes + liste), séparé de la coquille Historique/Parties prenantes.
     - `frontend/src/app/page.module.css` : `.notifListRow`, `.notifListIcone`, `.notifListInfo`.
 
+## Itération 7 (ad hoc) : écran Historique réel (timeline verticale d'une séance)
+
+- **Origine** : demande du développeur, hors plan initial — remplacer la coquille « à venir » de l'écran Historique par une timeline verticale détaillant le cycle de vie d'une séance (création → confirmation → report → validation → rappel → à venir). 10 minutes annoncées.
+- ❗️Aucune donnée d'historique n'existait avant cette itération. J'ai créé `frontend/src/data/historique.ts` avec 6 événements en dur, pour une seule séance choisie (id `2`, « Déchets et littoral », déjà porteuse d'une demande de report dans `seances.ts`, ce qui donne une timeline cohérente) — pas une vraie journalisation, et pas le modèle de données imposé (toujours non chargé).
+- **Dans le périmètre** :
+  - Carte d'en-tête : projet + école de la séance, lien « Voir la fiche » qui ouvre la modale de détail déjà existante (réutilisée telle quelle, aucune nouvelle modale).
+  - Timeline verticale à 6 événements, icônes de couleur (bleu création, vert confirmation, orange report, bleu foncé validation, violet rappel, gris pointillé « à venir ») reliées par une ligne verticale ; chaque événement affiche titre, date + heure, acteur + rôle + canal (mobile/email/app).
+  - L'événement « Demande de report » affiche l'ancienne et la nouvelle date (réutilise le composant visuel `diffBand` de l'écran Validation) et le motif ; l'événement « Validation » affiche la mini-grille des 4 actions automatiques (réutilise `mailRecap`/`notifRow`).
+  - `frontend/src/data/historique.ts` : `trierChronologiquement`, testée.
+- **Hors périmètre** : navigation entre plusieurs séances (une seule séance fixe, comme demandé) ; ajout/édition d'événements ; Parties prenantes reste une coquille « à venir ».
+- **Critères d'acceptation** :
+  - Étant donné l'écran Historique, alors la carte d'en-tête affiche le projet et l'école de la séance, et le lien « Voir la fiche » ouvre sa modale de détail.
+  - Étant donné la timeline, alors les 6 événements s'affichent dans l'ordre chronologique, chacun avec une icône de la couleur attendue, un titre, une date+heure et un acteur (nom, rôle, canal).
+  - Étant donné l'événement de report, alors l'ancienne et la nouvelle date ainsi que le motif sont visibles ; étant donné l'événement de validation, alors les 4 actions automatiques sont listées.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 1 minute (large marge, aucun dépassement).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du code — le rendu visuel réel n'a pas pu être inspecté dans un navigateur par l'agent, à confirmer par le développeur.
+  - Tests unitaires : 2 ajoutés (`trierChronologiquement` : tri chronologique + non-mutation du tableau d'origine) ; `npm test` : 11 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` et `/sante` → `ok` sur le front comme sur l'api ; `/` → 200. Le contenu de l'écran Historique lui-même n'est affiché qu'après clic côté client (SPA), non visible par `curl` sur `/` — vérifié par lecture de code uniquement.
+  - **Modifications** :
+    - `frontend/src/data/historique.ts` (nouveau) : types `EvenementHistorique`/`TypeEvenement`/`CanalEvenement`, 6 événements en dur, `trierChronologiquement`.
+    - `frontend/src/data/historique.test.ts` (nouveau) : 2 tests.
+    - `frontend/src/app/page.tsx` : écran Historique réel (carte d'en-tête + timeline), séparé de la coquille Parties prenantes.
+    - `frontend/src/app/page.module.css` : `.timelineItem`, `.timelineIconCol`, `.timelineIcon` (+ 6 variantes de couleur), `.timelineLine`, `.timelineContent`, `.timelineTitre`, `.timelineMeta`, `.timelineActeur`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 6 : l'écran Notifications est sorti de la liste des coquilles._
+_Mis à jour après l'itération 7 : l'écran Historique est sorti de la liste des coquilles._
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
 2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-3. Contenu réel des écrans Historique et Parties prenantes (coquilles « à venir » depuis l'itération 4).
+3. Contenu réel de l'écran Parties prenantes (dernière coquille « à venir » depuis l'itération 4).
 4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4.
 5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.

@@ -21,6 +21,14 @@ import {
   LIBELLE_DESTINATAIRE,
   type TypeDestinataire,
 } from "@/data/notifications";
+import {
+  evenementsHistorique,
+  trierChronologiquement,
+  seanceHistoriqueId,
+  ICONE_EVENEMENT,
+  LIBELLE_CANAL,
+  type TypeEvenement,
+} from "@/data/historique";
 
 type Ecran =
   | "dashboard"
@@ -37,6 +45,15 @@ const CLASSE_BADGE: Record<StatutSeance, string> = {
   a_confirmer: styles.badgeAConfirmer,
   realisee: styles.badgeRealisee,
   reportee: styles.badgeReportee,
+};
+
+const CLASSE_ICONE_EVENEMENT: Record<TypeEvenement, string> = {
+  creation: styles.timelineIconCreation,
+  confirmation: styles.timelineIconConfirmation,
+  report: styles.timelineIconReport,
+  validation: styles.timelineIconValidation,
+  rappel: styles.timelineIconRappel,
+  a_venir: styles.timelineIconAVenir,
 };
 
 const NAV = [
@@ -101,6 +118,8 @@ export default function Home() {
     mois: filtreMois || undefined,
   });
   const statsDestinataires = compterParDestinataire(notifications);
+  const seanceHistorique = seances.find((s) => s.id === seanceHistoriqueId) ?? null;
+  const evenementsTries = trierChronologiquement(evenementsHistorique);
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
@@ -384,7 +403,72 @@ export default function Home() {
             </>
           )}
 
-          {(ecran === "historique" || ecran === "parties-prenantes") && (
+          {ecran === "historique" && seanceHistorique && (
+            <>
+              <div className={styles.panel} style={{ maxWidth: 640 }}>
+                <div className={styles.panelTitle}>{seanceHistorique.projet}</div>
+                <div className={styles.sessionMeta}>{seanceHistorique.ecole}</div>
+                <button className={styles.lienVoir} onClick={() => setSeanceDetail(seanceHistorique.id)}>
+                  Voir la fiche →
+                </button>
+              </div>
+
+              <div className={styles.panel} style={{ maxWidth: 640 }}>
+                {evenementsTries.map((ev, i) => (
+                  <div key={ev.id} className={styles.timelineItem}>
+                    <div className={styles.timelineIconCol}>
+                      <div className={`${styles.timelineIcon} ${CLASSE_ICONE_EVENEMENT[ev.type]}`}>
+                        {ICONE_EVENEMENT[ev.type]}
+                      </div>
+                      {i < evenementsTries.length - 1 && <div className={styles.timelineLine} />}
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <div className={styles.timelineTitre}>{ev.titre}</div>
+                      <div className={styles.timelineMeta}>
+                        {formaterDate(ev.date, { day: "numeric", month: "long", year: "numeric" })} · {ev.heure}
+                      </div>
+
+                      {ev.type === "report" && (
+                        <div className={styles.diffBand} style={{ marginTop: 8 }}>
+                          <div>
+                            <div className={styles.diffLabel}>Ancienne date</div>
+                            <div className={styles.diffVal}>{formaterDate(ev.ancienneDate!)}</div>
+                          </div>
+                          <div className={styles.diffArrow}>→</div>
+                          <div>
+                            <div className={styles.diffLabel}>Nouvelle date</div>
+                            <div className={styles.diffVal}>{formaterDate(ev.nouvelleDate!)}</div>
+                          </div>
+                        </div>
+                      )}
+                      {ev.type === "report" && (
+                        <div className={styles.sessionMeta} style={{ marginTop: 6 }}>
+                          Motif : <strong>{ev.motif}</strong>
+                        </div>
+                      )}
+
+                      {ev.type === "validation" && ev.actionsAuto && (
+                        <div className={styles.mailRecap}>
+                          {ev.actionsAuto.map((action) => (
+                            <div key={action} className={styles.notifRow}>
+                              <span>{action}</span>
+                              <span className={`${styles.badgePill} ${styles.badgeConfirmee}`}>Auto</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className={styles.timelineActeur}>
+                        {ev.acteurNom} · {ev.acteurRole} · {LIBELLE_CANAL[ev.canal]}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {ecran === "parties-prenantes" && (
             <div className={styles.panel} style={{ maxWidth: 520 }}>
               <div className={styles.panelTitle}>{TITRE_ECRAN[ecran]}</div>
               <div className={styles.sessionMeta}>Écran à venir — hors périmètre de cette itération.</div>
