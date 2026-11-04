@@ -6,4 +6,9 @@ test("Démo : le cas passant", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("body")).toBeVisible();
   });
+
+  await test.step("Je consulte le tableau de bord des séances", async () => {
+    await expect(page.getByText("Tableau de bord des séances")).toBeVisible();
+    await expect(page.getByText("Demande de report en attente").first()).toBeVisible();
+  });
 });
