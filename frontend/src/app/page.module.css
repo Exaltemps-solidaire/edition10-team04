@@ -494,3 +494,107 @@
   padding: 4px 12px;
   margin: 12px 0;
 }
+
+/* Écran Séances : barre d'outils, tableau, modale */
+
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filterBar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filterBar .formInput {
+  width: auto;
+  min-width: 140px;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 8px;
+}
+
+.btnPrimarySm,
+.btnExportVert,
+.btnExportRouge {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnPrimarySm { background: #2563eb; }
+.btnExportVert { background: #16a34a; }
+.btnExportRouge { background: #dc2626; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1f2937;
+}
+
+.tableRow {
+  cursor: pointer;
+}
+
+.tableRow:hover {
+  background: #f8fafc;
+}
+
+.btnGris {
+  background: #64748b;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modalPanel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+}

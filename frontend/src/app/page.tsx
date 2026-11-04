@@ -6,6 +6,8 @@ import {
   seances as seancesInitiales,
   seancesAvecReportEnAttente,
   compterParStatut,
+  filtrerSeances,
+  changerStatut,
   LIBELLE_STATUT,
   traiterDemandeDeReport,
   type DecisionReport,
@@ -13,7 +15,15 @@ import {
   type StatutSeance,
 } from "@/data/seances";
 
-type Ecran = "dashboard" | "reporter" | "validation" | "mail";
+type Ecran =
+  | "dashboard"
+  | "seances"
+  | "reporter"
+  | "validation"
+  | "notifications"
+  | "historique"
+  | "parties-prenantes"
+  | "mail";
 
 const CLASSE_BADGE: Record<StatutSeance, string> = {
   confirmee: styles.badgeConfirmee,
@@ -24,15 +34,23 @@ const CLASSE_BADGE: Record<StatutSeance, string> = {
 
 const NAV = [
   { ecran: "dashboard" as const, icone: "📊", libelle: "Tableau de bord" },
+  { ecran: "seances" as const, icone: "📋", libelle: "Séances" },
   { ecran: "reporter" as const, icone: "📅", libelle: "Reporter une séance" },
   { ecran: "validation" as const, icone: "✅", libelle: "Validations" },
+  { ecran: "notifications" as const, icone: "🔔", libelle: "Notifications" },
+  { ecran: "historique" as const, icone: "🕒", libelle: "Historique" },
+  { ecran: "parties-prenantes" as const, icone: "👥", libelle: "Parties prenantes" },
   { ecran: "mail" as const, icone: "✉️", libelle: "Rappels" },
 ];
 
 const TITRE_ECRAN: Record<Ecran, string> = {
   dashboard: "Tableau de bord",
+  seances: "Séances",
   reporter: "Reporter une séance",
   validation: "Demande de report",
+  notifications: "Notifications",
+  historique: "Historique",
+  "parties-prenantes": "Parties prenantes",
   mail: "Rappel automatique",
 };
 
@@ -57,10 +75,24 @@ export default function Home() {
   const [precisions, setPrecisions] = useState(
     "L'enseignant a signalé une sortie natation en direct.",
   );
+  const [filtreProjet, setFiltreProjet] = useState("");
+  const [filtreAnimateur, setFiltreAnimateur] = useState("");
+  const [filtreStatut, setFiltreStatut] = useState<StatutSeance | "">("");
+  const [filtreMois, setFiltreMois] = useState("");
+  const [seanceDetail, setSeanceDetail] = useState<string | null>(null);
 
   const seanceSelectionnee = seances.find((s) => s.id === idSelectionne) ?? null;
+  const seanceEnDetail = seances.find((s) => s.id === seanceDetail) ?? null;
   const enAttente = seancesAvecReportEnAttente(seances);
   const compte = compterParStatut(seances);
+  const projets = [...new Set(seances.map((s) => s.projet))];
+  const animateurs = [...new Set(seances.map((s) => s.animateur))];
+  const seancesFiltrees = filtrerSeances(seances, {
+    projet: filtreProjet || undefined,
+    animateur: filtreAnimateur || undefined,
+    statut: filtreStatut || undefined,
+    mois: filtreMois || undefined,
+  });
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
@@ -83,6 +115,11 @@ export default function Home() {
       );
     }
     setEcran("dashboard");
+  }
+
+  function appliquerStatut(id: string, statut: StatutSeance) {
+    setSeances((liste) => changerStatut(liste, id, statut));
+    setSeanceDetail(null);
   }
 
   return (
@@ -219,6 +256,93 @@ export default function Home() {
             </>
           )}
 
+          {ecran === "seances" && (
+            <>
+              <div className={styles.tableToolbar}>
+                <div className={styles.filterBar}>
+                  <select className={styles.formInput} value={filtreProjet} onChange={(e) => setFiltreProjet(e.target.value)}>
+                    <option value="">Tous les projets</option>
+                    {projets.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <select className={styles.formInput} value={filtreAnimateur} onChange={(e) => setFiltreAnimateur(e.target.value)}>
+                    <option value="">Tous les animateurs</option>
+                    {animateurs.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                  <select
+                    className={styles.formInput}
+                    value={filtreStatut}
+                    onChange={(e) => setFiltreStatut(e.target.value as StatutSeance | "")}
+                  >
+                    <option value="">Tous les statuts</option>
+                    {Object.entries(LIBELLE_STATUT).map(([valeur, libelle]) => (
+                      <option key={valeur} value={valeur}>{libelle}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="month"
+                    className={styles.formInput}
+                    value={filtreMois}
+                    onChange={(e) => setFiltreMois(e.target.value)}
+                  />
+                </div>
+                <div className={styles.toolbarActions}>
+                  <button className={styles.btnPrimarySm}>+ Nouvelle séance</button>
+                  <button className={styles.btnExportVert} title="Export non disponible dans cette démo">📗 Exporter Excel</button>
+                  <button className={styles.btnExportRouge} title="Export non disponible dans cette démo">📕 Exporter PDF</button>
+                </div>
+              </div>
+
+              <div className={styles.panel} style={{ padding: 0 }}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Projet</th>
+                      <th>École</th>
+                      <th>Enseignant</th>
+                      <th>Animateur</th>
+                      <th>Date + heure</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seancesFiltrees.map((seance) => (
+                      <tr key={seance.id} className={styles.tableRow} onClick={() => setSeanceDetail(seance.id)}>
+                        <td>{seance.projet}</td>
+                        <td>{seance.ecole}</td>
+                        <td>{seance.enseignant}</td>
+                        <td>{seance.animateur}</td>
+                        <td>{formaterDate(seance.date)} · {seance.heure}</td>
+                        <td>
+                          <span className={`${styles.badgePill} ${CLASSE_BADGE[seance.statut]}`}>
+                            {LIBELLE_STATUT[seance.statut]}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {seancesFiltrees.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className={styles.sessionMeta} style={{ padding: 16 }}>
+                          Aucune séance ne correspond à ces filtres.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {(ecran === "notifications" || ecran === "historique" || ecran === "parties-prenantes") && (
+            <div className={styles.panel} style={{ maxWidth: 520 }}>
+              <div className={styles.panelTitle}>{TITRE_ECRAN[ecran]}</div>
+              <div className={styles.sessionMeta}>Écran à venir — hors périmètre de cette itération.</div>
+            </div>
+          )}
+
           {ecran === "reporter" && seanceSelectionnee && (
             <div className={styles.panel} style={{ maxWidth: 520 }}>
               <div className={styles.panelTitle}>Séance concernée</div>
@@ -333,6 +457,42 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {seanceEnDetail && (
+        <div className={styles.modalOverlay} onClick={() => setSeanceDetail(null)}>
+          <div className={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.panelTitle}>{seanceEnDetail.projet}</div>
+            <div className={styles.notifRow}><span>École</span><span>{seanceEnDetail.ecole}</span></div>
+            <div className={styles.notifRow}><span>Classe</span><span>{seanceEnDetail.classe}</span></div>
+            <div className={styles.notifRow}><span>Enseignant</span><span>{seanceEnDetail.enseignant}</span></div>
+            <div className={styles.notifRow}><span>Animateur</span><span>{seanceEnDetail.animateur}</span></div>
+            <div className={styles.notifRow}><span>Financeur</span><span>{seanceEnDetail.financeur}</span></div>
+            <div className={styles.notifRow}>
+              <span>Date</span>
+              <span>{formaterDate(seanceEnDetail.date, { day: "numeric", month: "long", year: "numeric" })}</span>
+            </div>
+            <div className={styles.notifRow}><span>Heure</span><span>{seanceEnDetail.heure}</span></div>
+
+            <div className={styles.btnRow} style={{ marginTop: 16 }}>
+              <button className={styles.btnPrimaryVert} onClick={() => appliquerStatut(seanceEnDetail.id, "confirmee")}>
+                Confirmer
+              </button>
+              <button
+                className={styles.btnGris}
+                onClick={() => {
+                  setSeanceDetail(null);
+                  ouvrirEcran(seanceEnDetail.id, "reporter");
+                }}
+              >
+                Reporter
+              </button>
+              <button className={styles.btnPrimary} style={{ marginTop: 0 }} onClick={() => appliquerStatut(seanceEnDetail.id, "realisee")}>
+                Marquer réalisée
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
