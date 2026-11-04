@@ -275,13 +275,43 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : état `contactsList`/`ongletContact`/`modalContactOuvert`/`nouveauContact`, handlers `ouvrirModalContact`/`soumettreContact`, écran complet (en-tête, onglets, grille de cartes) remplaçant la coquille, modal d'ajout de contact.
     - `frontend/src/app/page.module.css` : `.pageHeaderRow`, `.tabsRow`, `.tabBtn`(+`Active`), `.contactGrid`, `.contactCard`, `.contactEditBtn`, `.avatarEnseignant`/`.avatarFinanceur`/`.avatarElu`, `.contactNom`, `.contactOrg`, `.contactLigne`, `.contactInfoNote`.
 
+## Itération 10 (ad hoc) : support PWA, partie 1/3 — manifest + icônes + meta
+
+- **Origine** : demande du développeur, hors plan initial — « ajouter le support PWA complet » (manifest, service worker, UI d'installation). ✂️ Trop gros pour une itération (7+ fichiers, 3 préoccupations indépendantes) : découpé en 3 itérations. 10 minutes annoncées, une seule itération possible dans ce budget.
+- ❗️La demande visait un projet HTML/JS brut (`manifest.json` à la racine, balises dans « chaque page `.html` »). Adapté à la structure Next.js réelle : une seule mise en page (`frontend/src/app/layout.tsx`) via l'API `metadata`/`viewport` de Next plutôt que des balises `<head>` à la main.
+- ❗️La demande déclarait des icônes `.png` dans le manifest mais demandait de livrer des `.svg` : généré des SVG (carré bleu arrondi `#2563eb` + emoji 📅), référencés avec `"type": "image/svg+xml"` dans le manifest.
+- ⚠️ `apple-touch-icon` pointe vers un SVG : iOS Safari a un support inégal des icônes SVG pour l'écran d'accueil (contrairement à Chrome/Android) — à remplacer par un vrai PNG si l'icône n'apparaît pas correctement sur iPhone au test.
+- **Dans le périmètre** :
+  - `frontend/public/manifest.json` conforme au gabarit demandé (nom, icônes, couleurs, `display: standalone`).
+  - `frontend/public/icons/icon-192.svg` et `icon-512.svg`.
+  - `frontend/src/app/layout.tsx` : `metadata.manifest`, `metadata.appleWebApp` (capable, titre, barre de statut), `metadata.icons.apple`, `viewport.themeColor` — génèrent les balises `<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="mobile-web-app-capable">`, `<meta name="apple-mobile-web-app-title">`, `<meta name="apple-mobile-web-app-status-bar-style">`, `<link rel="apple-touch-icon">`.
+- **Hors périmètre** (reporté aux itérations 11 et 12, ✂️) : service worker (cache, stratégie cache-first, nettoyage des anciennes versions) ; UI d'installation (bannière, bouton nav, `beforeinstallprompt`/`appinstalled`, modal iOS).
+- **Critères d'acceptation** :
+  - Étant donné la page d'accueil, quand on inspecte le `<head>` généré, alors il contient `<link rel="manifest" href="/manifest.json">` et les balises `theme-color`/`apple-mobile-web-app-*`.
+  - Étant donné `/manifest.json`, quand on le requête, alors il répond 200 avec un JSON valide contenant les 2 icônes.
+  - Étant donné `/icons/icon-192.svg` et `/icons/icon-512.svg`, quand on les requête, alors ils répondent 200.
+- **Codage estimé** : 10 minutes (budget annoncé) ; pas de nouvelle logique métier pure à cette étape, donc aucun test Vitest supplémentaire (couverture déjà à 16/16).
+- **Bilan** :
+  - Durée de codage réelle : 1 minute (large marge).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par `npm run build` (balises présentes dans `out/index.html`) et par `curl` en local sur le conteneur déployé (`/manifest.json` → 200 + JSON attendu, `/icons/icon-192.svg` → 200).
+  - Tests unitaires : aucun ajouté (pas de logique métier, uniquement de la configuration/metadata) ; `npm test` : 16 tests passent toujours.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` → `ok`, `/manifest.json` → 200, icônes → 200.
+  - **Modifications** :
+    - `frontend/public/manifest.json` (nouveau).
+    - `frontend/public/icons/icon-192.svg`, `frontend/public/icons/icon-512.svg` (nouveaux).
+    - `frontend/src/app/layout.tsx` : ajout de `manifest`, `appleWebApp`, `icons.apple` à `metadata`, nouvel export `viewport` avec `themeColor`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 9 : l'écran Parties prenantes est livré, en plus du plan initial._
+_Mis à jour après l'itération 10 : le manifest et les icônes PWA sont livrés ; le service worker et l'UI d'installation restent à faire._
 
-1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
-2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-3. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
-4. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
-5. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
-6. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
+1. ✂️ PWA, partie 2/3 : service worker (`frontend/public/sw.js`, cache-first, cache `mediplan-v1`, pré-cache de l'app shell, nettoyage des anciens caches à l'activation) et son enregistrement dans `page.tsx`.
+2. ✂️ PWA, partie 3/3 : UI d'installation (bannière bas d'écran, bouton « Installer l'app » dans la nav, gestion `beforeinstallprompt`/`appinstalled`, modal d'instructions iOS, masquage si déjà installé via `display-mode: standalone`).
+3. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
+4. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
+5. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
+6. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
+7. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
+8. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
+9. ⚠️ Remplacer l'icône `apple-touch-icon` SVG par un vrai PNG si le rendu sur l'écran d'accueil iOS n'est pas satisfaisant.
