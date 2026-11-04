@@ -48,6 +48,12 @@ import {
   type Contact,
   type TypeContact,
 } from "@/data/contacts";
+import { doitAfficherInstallation } from "@/data/pwa";
+
+type EvenementAvantInstallation = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
 
 type Ecran =
   | "dashboard"
@@ -158,6 +164,12 @@ export default function Home() {
   const [ongletContact, setOngletContact] = useState<TypeContact>("enseignant");
   const [modalContactOuvert, setModalContactOuvert] = useState(false);
   const [nouveauContact, setNouveauContact] = useState(CONTACT_VIDE);
+  const [promptDiffere, setPromptDiffere] = useState<EvenementAvantInstallation | null>(null);
+  const [banniereVisible, setBanniereVisible] = useState(false);
+  const [estStandalone, setEstStandalone] = useState(false);
+  const [estIOS, setEstIOS] = useState(false);
+  const [modaleIOSOuverte, setModaleIOSOuverte] = useState(false);
+  const [toastInstalleVisible, setToastInstalleVisible] = useState(false);
 
   const seanceSelectionnee = seances.find((s) => s.id === idSelectionne) ?? null;
   const seanceEnDetail = seances.find((s) => s.id === seanceDetail) ?? null;
@@ -175,12 +187,54 @@ export default function Home() {
   const seanceHistorique = seances.find((s) => s.id === seanceHistoriqueId) ?? null;
   const evenementsTries = trierChronologiquement(evenementsHistorique);
   const contactsOnglet = contactsList.filter((c) => c.typeContact === ongletContact);
+  const installationProposable = doitAfficherInstallation(estStandalone, promptDiffere !== null, estIOS);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
+
+    const requeteStandalone = window.matchMedia("(display-mode: standalone)");
+    const lireModeAffichage = () => setEstStandalone(requeteStandalone.matches);
+    lireModeAffichage();
+    requeteStandalone.addEventListener("change", lireModeAffichage);
+
+    setTimeout(() => setEstIOS(/iPad|iPhone|iPod/.test(navigator.userAgent)), 0);
+
+    function onBeforeInstallPrompt(e: Event) {
+      e.preventDefault();
+      setPromptDiffere(e as EvenementAvantInstallation);
+      setTimeout(() => setBanniereVisible(true), 3000);
+    }
+
+    function onAppInstalled() {
+      setBanniereVisible(false);
+      setPromptDiffere(null);
+      setEstStandalone(true);
+      setToastInstalleVisible(true);
+      setTimeout(() => setToastInstalleVisible(false), 4000);
+    }
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+      requeteStandalone.removeEventListener("change", lireModeAffichage);
+    };
   }, []);
+
+  function triggerPWAInstall() {
+    if (promptDiffere) {
+      promptDiffere.prompt();
+      promptDiffere.userChoice.finally(() => {
+        setPromptDiffere(null);
+        setBanniereVisible(false);
+      });
+    } else if (estIOS) {
+      setModaleIOSOuverte(true);
+    }
+  }
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
@@ -273,6 +327,11 @@ export default function Home() {
           <div className={styles.headerTitle}>{TITRE_ECRAN[ecran]}</div>
           <div className={styles.searchBar}>🔍 Rechercher une séance, une école…</div>
           <div className={styles.headerActions}>
+            {installationProposable && (
+              <button className={styles.installNavBtn} onClick={triggerPWAInstall}>
+                ⬇ Installer l&apos;app
+              </button>
+            )}
             <div className={styles.bellWrap}>
               🔔<span className={styles.bellDot} />
             </div>
@@ -914,6 +973,46 @@ export default function Home() {
             </form>
           </div>
         </div>
+      )}
+
+      {modaleIOSOuverte && (
+        <div className={styles.modalOverlay} onClick={() => setModaleIOSOuverte(false)}>
+          <div className={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.panelTitle}>Installer MediPlan</div>
+            <div className={styles.sessionMeta}>
+              Sur iPhone/iPad, l&apos;installation se fait depuis Safari :
+            </div>
+            <div className={styles.notifRow}><span>1.</span><span>Appuyez sur ⬆️ Partager</span></div>
+            <div className={styles.notifRow}><span>2.</span><span>Choisissez « Sur l&apos;écran d&apos;accueil »</span></div>
+            <button className={styles.btnPrimary} onClick={() => setModaleIOSOuverte(false)}>
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
+
+      {banniereVisible && !estStandalone && (
+        <div className={styles.installBanner}>
+          <span className={styles.installBannerIcon}>📅</span>
+          <div className={styles.installBannerInfo}>
+            <div className={styles.installBannerTitre}>MediPlan</div>
+            <div className={styles.installBannerTexte}>Installez l&apos;app pour un accès plus rapide.</div>
+          </div>
+          <button className={styles.installBannerBtn} onClick={triggerPWAInstall}>
+            Installer
+          </button>
+          <button
+            className={styles.installBannerClose}
+            onClick={() => setBanniereVisible(false)}
+            aria-label="Fermer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {toastInstalleVisible && (
+        <div className={styles.installToast}>✔ MediPlan est installé</div>
       )}
     </div>
   );

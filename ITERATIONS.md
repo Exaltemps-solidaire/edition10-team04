@@ -324,16 +324,45 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/public/sw.js` (nouveau) : cache `mediplan-v1`, `install`/`activate`/`fetch`.
     - `frontend/src/app/page.tsx` : import `useEffect`, nouvel effet d'enregistrement du service worker.
 
+## Itération 12 (ad hoc) : support PWA, partie 3/3 — UI d'installation
+
+- **Origine** : suite des itérations 10-11 (backlog item 1), demande du développeur « go partie 3 ». 10 minutes annoncées.
+- ❗️`react-hooks/set-state-in-effect` (règle du compilateur React, activée dans la config ESLint de ce projet) interdit d'appeler `setState` de façon synchrone au premier niveau d'un effet. Adapté en conséquence : la lecture de `display-mode: standalone` s'abonne à l'événement `change` de `matchMedia` (plutôt qu'une simple lecture ponctuelle), et la détection iOS est déférée dans un callback (`setTimeout(…, 0)`) — comportement inchangé pour l'utilisateur, juste une forme conforme à la règle du linter.
+- **Dans le périmètre** :
+  - Bouton « ⬇ Installer l'app » dans la barre de navigation du haut, visible seulement si une installation est proposable (`doitAfficherInstallation`, testée).
+  - Bannière fixe en bas d'écran (dégradé bleu), icône + nom + bouton « Installer » + croix de fermeture, affichée 3 secondes après l'événement `beforeinstallprompt`.
+  - `triggerPWAInstall()` : appelle `deferredPrompt.prompt()` s'il existe (Android/Chrome), sinon ouvre la modale d'instructions iOS (détection `/iPad|iPhone|iPod/.test(navigator.userAgent)`).
+  - Gestion de `appinstalled` : masque la bannière, bascule en mode « installé », affiche un toast de succès 4 secondes.
+  - Bouton nav et bannière masqués dès que `display-mode: standalone` est détecté (app déjà installée).
+  - `frontend/src/data/pwa.ts` : `doitAfficherInstallation`, testée (3 cas : standalone, Android/Chrome avec prompt différé, iOS sans prompt différé).
+- **Hors périmètre** : personnalisation du délai de 3 secondes ou de la fréquence de réaffichage de la bannière après fermeture (elle réapparaît si `beforeinstallprompt` se redéclenche, ex. nouvel onglet) ; suivi analytique de l'installation.
+- **Critères d'acceptation** :
+  - Étant donné un navigateur Chrome/Android qui déclenche `beforeinstallprompt`, quand 3 secondes s'écoulent, alors la bannière bas d'écran et le bouton nav apparaissent ; un clic sur l'un ou l'autre déclenche le prompt natif.
+  - Étant donné un navigateur iOS, quand on clique « Installer l'app » (bouton nav, seul visible sans `beforeinstallprompt`), alors une modale affiche les instructions « Partager → Sur l'écran d'accueil ».
+  - Étant donné l'app déjà installée (`display-mode: standalone`), quand la page se charge, alors ni le bouton nav ni la bannière ne s'affichent.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 2 minutes (large marge).
+  - Critères d'acceptation : les 3 satisfaits par lecture du code ; le déclenchement réel de `beforeinstallprompt` par Chrome (qui dépend de ses propres heuristiques d'engagement) et le rendu sur un vrai iPhone n'ont pas pu être observés dans un navigateur par l'agent — à confirmer par le développeur.
+  - Tests unitaires : 3 ajoutés (`doitAfficherInstallation` : faux en standalone, vrai avec prompt différé, vrai sur iOS sans prompt différé) ; `npm test` : 19 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` → `ok` ; `/` → 200 ; le bundle JS publié contient le code `beforeinstallprompt` et le libellé « Installer l'app ».
+  - **Modifications** :
+    - `frontend/src/data/pwa.ts` (nouveau) : `doitAfficherInstallation`.
+    - `frontend/src/data/pwa.test.ts` (nouveau) : 3 tests.
+    - `frontend/src/app/page.tsx` : type `EvenementAvantInstallation`, état `promptDiffere`/`banniereVisible`/`estStandalone`/`estIOS`/`modaleIOSOuverte`/`toastInstalleVisible`, effet d'écoute `beforeinstallprompt`/`appinstalled`/`display-mode`, `triggerPWAInstall`, bouton nav, bannière, toast, modale iOS.
+    - `frontend/src/app/page.module.css` : `.installNavBtn`, `.installBanner`(+ sous-éléments), `.installToast`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 11 : le service worker est livré ; reste l'UI d'installation._
+_Mis à jour après l'itération 12 : les 3 parties du support PWA (manifest, service worker, UI d'installation) sont livrées._
 
-1. ✂️ PWA, partie 3/3 : UI d'installation (bannière bas d'écran, bouton « Installer l'app » dans la nav, gestion `beforeinstallprompt`/`appinstalled`, modal d'instructions iOS, masquage si déjà installé via `display-mode: standalone`).
-2. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
-3. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
-5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
-6. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
-7. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
-8. ⚠️ Remplacer l'icône `apple-touch-icon` SVG par un vrai PNG si le rendu sur l'écran d'accueil iOS n'est pas satisfaisant.
-9. ⚠️ Vérifier qu'un déploiement de nouvelle version de l'app ne laisse pas des visiteurs coincés sur une version mise en cache par le service worker (prévoir un bump de `CACHE_NAME` à chaque itération touchant au front, ou une invalidation plus automatique).
+1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
+2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
+3. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
+4. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
+5. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
+6. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
+7. ⚠️ Remplacer l'icône `apple-touch-icon` SVG par un vrai PNG si le rendu sur l'écran d'accueil iOS n'est pas satisfaisant.
+8. ⚠️ Vérifier qu'un déploiement de nouvelle version de l'app ne laisse pas des visiteurs coincés sur une version mise en cache par le service worker (prévoir un bump de `CACHE_NAME` à chaque itération touchant au front, ou une invalidation plus automatique).
+9. ⚠️ Vérifier sur un vrai appareil Android/Chrome et un vrai iPhone que le flux d'installation PWA (bannière, prompt natif, modale iOS, bascule post-installation) se comporte comme prévu — non observable dans ce navigateur côté agent.
