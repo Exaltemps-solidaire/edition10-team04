@@ -785,6 +785,108 @@
   color: #166534;
 }
 
+/* Écran Parties prenantes */
+
+.pageHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tabsRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tabBtn {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.tabBtnActive {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.contactCard {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.contactEditBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.avatarEnseignant {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.avatarFinanceur {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.avatarElu {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.contactNom {
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.contactOrg {
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.contactLigne {
+  font-size: 13px;
+  color: #334155;
+  margin-top: 2px;
+}
+
+.contactInfoNote {
+  margin-top: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #1e3a8a;
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;

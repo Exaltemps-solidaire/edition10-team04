@@ -247,13 +247,41 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : nouvelle entrée de nav « Automatisation », état `statutsEtapes`/`demoLancee`, `lancerDemoAutomatisation` (chaîne de `setTimeout`), écran complet (déclencheur, 5 cartes, bouton, bandeau de succès).
     - `frontend/src/app/page.module.css` : `.autoTrigger`, `.autoTriggerCheck`, `.autoStepGrid`, `.autoStepCard`(+`Done`), `.autoStepIcon` (+ 5 variantes de couleur), `.autoStepInfo`, `.autoStepTitre`, `.autoStepStatus`, `.autoSuccessBand`, `.autoSuccessTiles`, `.autoSuccessTile`.
 
+## Itération 9 (ad hoc) : écran Parties prenantes (contacts externes)
+
+- **Origine** : demande du développeur, hors plan initial — contenu réel de l'écran « Parties prenantes » (coquille vide depuis l'itération 4) : gestion des contacts externes (enseignants, financeurs, élus) qui n'ont pas de compte applicatif et reçoivent uniquement des e-mails. 10 minutes annoncées.
+- ❗️9 contacts en dur, inventés par l'agent (noms, e-mails, téléphones) ; seuls le nombre de séances par enseignant/financeur et les organisations (écoles, Ville de Cannes, Mairie d'Antibes, Région Sud) sont dérivés des occurrences réelles dans `frontend/src/data/seances.ts`. Les deux contacts « élus » (Isabelle Roux, Marc Giraud) sont entièrement inventés, faute d'élus dans la passation.
+- ❗️Le bouton « ✏️ » d'édition de contact est décoratif (`title` l'indique) : aucune modification de contact n'est câblée, seul l'ajout l'est.
+- **Dans le périmètre** :
+  - En-tête de page : titre, sous-titre, bouton bleu « + Ajouter un contact ».
+  - 3 onglets (Enseignants 🍎 / Financeurs 👔 / Élus-Responsables 🏛️), grille de cartes (avatar initiales colorées, nom, organisation, e-mail `mailto:`, téléphone optionnel, badge « N séance(s) »).
+  - Modal d'ajout : Prénom, Nom, Email (requis), Téléphone, puis champ « organisation » et champ « détail » dont le libellé change selon le type (École/Classe, Organisation/Type financeur en liste déroulante CAF-Mairie-État-Autre, Collectivité/Titre), note d'information sur l'absence de mot de passe, bouton « Enregistrer le contact ».
+  - `frontend/src/data/contacts.ts` : `initiales` et `ajouterContact`, testées.
+- **Hors périmètre** : édition et suppression d'un contact existant (bouton décoratif) ; persistance au-delà de l'état React (perdu au rechargement) ; lien cliquable entre un contact et ses séances réelles.
+- **Critères d'acceptation** :
+  - Étant donné l'écran Parties prenantes, quand on clique un onglet, alors seuls les contacts de ce type s'affichent en grille de cartes.
+  - Étant donné le bouton « Ajouter un contact », quand on le clique, alors un formulaire modal s'ouvre avec des champs dont le libellé dépend du type sélectionné.
+  - Étant donné le formulaire rempli (champs requis), quand on clique « Enregistrer le contact », alors le nouveau contact apparaît dans la grille de l'onglet correspondant avec 0 séance.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 4 minutes (pas de dépassement).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du code — l'agent n'a pas pu ouvrir de navigateur sur cette machine pour un test interactif.
+  - Tests unitaires : 2 ajoutés (`initiales` : première lettre prénom+nom en majuscules ; `ajouterContact` : ajoute sans muter la liste d'origine, 0 séance, id généré) ; `npm test` : 16 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` et `/sante` → `ok` ; `/` → 200 ; le libellé « Ajouter un contact » est présent dans le bundle JS publié (confirmant que le nouveau code est bien déployé, l'export étant côté client).
+  - **Modifications** :
+    - `frontend/src/data/contacts.ts` (nouveau) : types `Contact`/`TypeContact`, libellés/icônes, 9 contacts en dur, `initiales`, `ajouterContact`.
+    - `frontend/src/data/contacts.test.ts` (nouveau) : 2 tests.
+    - `frontend/src/app/page.tsx` : état `contactsList`/`ongletContact`/`modalContactOuvert`/`nouveauContact`, handlers `ouvrirModalContact`/`soumettreContact`, écran complet (en-tête, onglets, grille de cartes) remplaçant la coquille, modal d'ajout de contact.
+    - `frontend/src/app/page.module.css` : `.pageHeaderRow`, `.tabsRow`, `.tabBtn`(+`Active`), `.contactGrid`, `.contactCard`, `.contactEditBtn`, `.avatarEnseignant`/`.avatarFinanceur`/`.avatarElu`, `.contactNom`, `.contactOrg`, `.contactLigne`, `.contactInfoNote`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 8 : l'écran Automatisation est livré, en plus du plan initial._
+_Mis à jour après l'itération 9 : l'écran Parties prenantes est livré, en plus du plan initial._
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
 2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-3. Contenu réel de l'écran Parties prenantes (dernière coquille « à venir » depuis l'itération 4).
-4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4.
-5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
-6. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
+3. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
+4. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
+5. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
+6. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.

@@ -37,6 +37,17 @@ import {
   type StatutEtape,
   type ClasseCouleurEtape,
 } from "@/data/automatisation";
+import {
+  contacts as contactsInitiaux,
+  initiales,
+  ajouterContact,
+  LIBELLE_TYPE_CONTACT,
+  ICONE_TYPE_CONTACT,
+  LABELS_CHAMPS_CONTACT,
+  TYPES_FINANCEUR,
+  type Contact,
+  type TypeContact,
+} from "@/data/contacts";
 
 type Ecran =
   | "dashboard"
@@ -71,6 +82,22 @@ const CLASSE_ICONE_ETAPE: Record<ClasseCouleurEtape, string> = {
   orange: styles.autoStepIconOrange,
   violet: styles.autoStepIconViolet,
   indigo: styles.autoStepIconIndigo,
+};
+
+const CLASSE_AVATAR_CONTACT: Record<TypeContact, string> = {
+  enseignant: styles.avatarEnseignant,
+  financeur: styles.avatarFinanceur,
+  elu: styles.avatarElu,
+};
+
+const CONTACT_VIDE = {
+  typeContact: "enseignant" as TypeContact,
+  prenom: "",
+  nom: "",
+  email: "",
+  telephone: "",
+  organisation: "",
+  detail: "",
 };
 
 const NAV = [
@@ -127,6 +154,10 @@ export default function Home() {
     etapesAutomatisation.map(() => "en_attente"),
   );
   const [demoLancee, setDemoLancee] = useState(false);
+  const [contactsList, setContactsList] = useState<Contact[]>(contactsInitiaux);
+  const [ongletContact, setOngletContact] = useState<TypeContact>("enseignant");
+  const [modalContactOuvert, setModalContactOuvert] = useState(false);
+  const [nouveauContact, setNouveauContact] = useState(CONTACT_VIDE);
 
   const seanceSelectionnee = seances.find((s) => s.id === idSelectionne) ?? null;
   const seanceEnDetail = seances.find((s) => s.id === seanceDetail) ?? null;
@@ -143,6 +174,7 @@ export default function Home() {
   const statsDestinataires = compterParDestinataire(notifications);
   const seanceHistorique = seances.find((s) => s.id === seanceHistoriqueId) ?? null;
   const evenementsTries = trierChronologiquement(evenementsHistorique);
+  const contactsOnglet = contactsList.filter((c) => c.typeContact === ongletContact);
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
@@ -180,6 +212,27 @@ export default function Home() {
         setStatutsEtapes((liste) => avancerEtape(liste, index));
       }, DELAI_ETAPE_MS * (index + 1));
     });
+  }
+
+  function ouvrirModalContact() {
+    setNouveauContact({ ...CONTACT_VIDE, typeContact: ongletContact });
+    setModalContactOuvert(true);
+  }
+
+  function soumettreContact(e: React.FormEvent) {
+    e.preventDefault();
+    setContactsList((liste) =>
+      ajouterContact(liste, {
+        typeContact: nouveauContact.typeContact,
+        prenom: nouveauContact.prenom,
+        nom: nouveauContact.nom,
+        email: nouveauContact.email,
+        telephone: nouveauContact.telephone || undefined,
+        organisation: nouveauContact.organisation,
+        detail: nouveauContact.detail || undefined,
+      }),
+    );
+    setModalContactOuvert(false);
   }
 
   return (
@@ -502,10 +555,61 @@ export default function Home() {
           )}
 
           {ecran === "parties-prenantes" && (
-            <div className={styles.panel} style={{ maxWidth: 520 }}>
-              <div className={styles.panelTitle}>{TITRE_ECRAN[ecran]}</div>
-              <div className={styles.sessionMeta}>Écran à venir — hors périmètre de cette itération.</div>
-            </div>
+            <>
+              <div className={styles.pageHeaderRow}>
+                <div>
+                  <div className={styles.panelTitle} style={{ marginBottom: 2 }}>Parties prenantes</div>
+                  <div className={styles.sessionMeta}>
+                    Contacts externes — reçoivent les communications par e-mail uniquement
+                  </div>
+                </div>
+                <button className={styles.btnPrimarySm} onClick={ouvrirModalContact}>
+                  + Ajouter un contact
+                </button>
+              </div>
+
+              <div className={styles.tabsRow}>
+                {(Object.keys(LIBELLE_TYPE_CONTACT) as TypeContact[]).map((type) => (
+                  <button
+                    key={type}
+                    className={`${styles.tabBtn} ${ongletContact === type ? styles.tabBtnActive : ""}`}
+                    onClick={() => setOngletContact(type)}
+                  >
+                    {ICONE_TYPE_CONTACT[type]} {LIBELLE_TYPE_CONTACT[type]}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.contactGrid}>
+                {contactsOnglet.map((contact) => (
+                  <div key={contact.id} className={styles.contactCard}>
+                    <button
+                      className={styles.contactEditBtn}
+                      title="Modification non disponible dans cette démo"
+                    >
+                      ✏️
+                    </button>
+                    <div className={`${styles.avatar} ${CLASSE_AVATAR_CONTACT[contact.typeContact]}`}>
+                      {initiales(contact.prenom, contact.nom)}
+                    </div>
+                    <div className={styles.contactNom}>{contact.prenom} {contact.nom}</div>
+                    <div className={styles.contactOrg}>{contact.organisation}</div>
+                    <div className={styles.contactLigne}>
+                      ✉️ <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                    </div>
+                    {contact.telephone && (
+                      <div className={styles.contactLigne}>📞 {contact.telephone}</div>
+                    )}
+                    <span className={`${styles.badgePill} ${styles.badgeConfirmee}`} style={{ marginTop: 8 }}>
+                      {contact.nbSeances} séance{contact.nbSeances > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                ))}
+                {contactsOnglet.length === 0 && (
+                  <div className={styles.sessionMeta}>Aucun contact dans cette catégorie.</div>
+                )}
+              </div>
+            </>
           )}
 
           {ecran === "reporter" && seanceSelectionnee && (
@@ -705,6 +809,103 @@ export default function Home() {
                 Marquer réalisée
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {modalContactOuvert && (
+        <div className={styles.modalOverlay} onClick={() => setModalContactOuvert(false)}>
+          <div className={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.panelTitle}>Ajouter un contact</div>
+
+            <form onSubmit={soumettreContact}>
+              <label className={styles.formLabel}>Type de contact</label>
+              <select
+                className={styles.formInput}
+                value={nouveauContact.typeContact}
+                onChange={(e) =>
+                  setNouveauContact((c) => ({ ...c, typeContact: e.target.value as TypeContact, organisation: "", detail: "" }))
+                }
+              >
+                {(Object.keys(LIBELLE_TYPE_CONTACT) as TypeContact[]).map((type) => (
+                  <option key={type} value={type}>{LIBELLE_TYPE_CONTACT[type]}</option>
+                ))}
+              </select>
+
+              <label className={styles.formLabel}>Prénom</label>
+              <input
+                className={styles.formInput}
+                value={nouveauContact.prenom}
+                onChange={(e) => setNouveauContact((c) => ({ ...c, prenom: e.target.value }))}
+                required
+              />
+
+              <label className={styles.formLabel}>Nom</label>
+              <input
+                className={styles.formInput}
+                value={nouveauContact.nom}
+                onChange={(e) => setNouveauContact((c) => ({ ...c, nom: e.target.value }))}
+                required
+              />
+
+              <label className={styles.formLabel}>Email</label>
+              <input
+                type="email"
+                className={styles.formInput}
+                value={nouveauContact.email}
+                onChange={(e) => setNouveauContact((c) => ({ ...c, email: e.target.value }))}
+                required
+              />
+
+              <label className={styles.formLabel}>Téléphone (facultatif)</label>
+              <input
+                className={styles.formInput}
+                value={nouveauContact.telephone}
+                onChange={(e) => setNouveauContact((c) => ({ ...c, telephone: e.target.value }))}
+              />
+
+              <label className={styles.formLabel}>{LABELS_CHAMPS_CONTACT[nouveauContact.typeContact].organisation}</label>
+              <input
+                className={styles.formInput}
+                value={nouveauContact.organisation}
+                onChange={(e) => setNouveauContact((c) => ({ ...c, organisation: e.target.value }))}
+                required
+              />
+
+              <label className={styles.formLabel}>{LABELS_CHAMPS_CONTACT[nouveauContact.typeContact].detail}</label>
+              {nouveauContact.typeContact === "financeur" ? (
+                <select
+                  className={styles.formInput}
+                  value={nouveauContact.detail}
+                  onChange={(e) => setNouveauContact((c) => ({ ...c, detail: e.target.value }))}
+                >
+                  <option value="">—</option>
+                  {TYPES_FINANCEUR.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={styles.formInput}
+                  value={nouveauContact.detail}
+                  onChange={(e) => setNouveauContact((c) => ({ ...c, detail: e.target.value }))}
+                />
+              )}
+
+              <div className={styles.contactInfoNote}>
+                ℹ️ Ce contact ne recevra jamais de mot de passe. Il reçoit uniquement les e-mails de confirmation,
+                report et rappel générés automatiquement par MediPlan.
+              </div>
+
+              <div className={styles.btnRow}>
+                <button type="submit" className={styles.btnPrimaryVert}>
+                  Enregistrer le contact
+                </button>
+                <button type="button" className={styles.btnGris} onClick={() => setModalContactOuvert(false)}>
+                  Annuler
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
