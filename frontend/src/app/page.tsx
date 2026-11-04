@@ -14,6 +14,13 @@ import {
   type Seance,
   type StatutSeance,
 } from "@/data/seances";
+import {
+  notifications,
+  compterParDestinataire,
+  ICONE_DESTINATAIRE,
+  LIBELLE_DESTINATAIRE,
+  type TypeDestinataire,
+} from "@/data/notifications";
 
 type Ecran =
   | "dashboard"
@@ -93,6 +100,7 @@ export default function Home() {
     statut: filtreStatut || undefined,
     mois: filtreMois || undefined,
   });
+  const statsDestinataires = compterParDestinataire(notifications);
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
@@ -336,7 +344,47 @@ export default function Home() {
             </>
           )}
 
-          {(ecran === "notifications" || ecran === "historique" || ecran === "parties-prenantes") && (
+          {ecran === "notifications" && (
+            <>
+              <div className={styles.kpiGrid}>
+                {(Object.keys(LIBELLE_DESTINATAIRE) as TypeDestinataire[]).map((type) => (
+                  <div key={type} className={styles.kpiCard}>
+                    <div className={`${styles.kpiIcon} ${styles.kpiIconBlue}`}>{ICONE_DESTINATAIRE[type]}</div>
+                    <div className={styles.kpiValue}>{statsDestinataires[type].total}</div>
+                    <div className={styles.kpiLabel}>{LIBELLE_DESTINATAIRE[type]}</div>
+                    <div className={styles.kpiWarning} style={{ color: "#16a34a" }}>
+                      {statsDestinataires[type].tauxLecture}% de lecture
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.panel} style={{ padding: 0, marginTop: 24 }}>
+                {notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={styles.notifListRow}
+                    style={{ borderLeftColor: notif.lu ? "#16a34a" : "#f59e0b" }}
+                  >
+                    <span className={styles.notifListIcone}>{ICONE_DESTINATAIRE[notif.typeDestinataire]}</span>
+                    <div className={styles.notifListInfo}>
+                      <div className={styles.sessionProjet}>{notif.destinataireNom}</div>
+                      <div className={styles.sessionMeta}>{notif.destinataireRole}</div>
+                    </div>
+                    <div className={styles.notifListInfo}>
+                      <div className={styles.sessionMeta}>{notif.objet}</div>
+                    </div>
+                    <div className={styles.sessionMeta}>{formaterDate(notif.dateEnvoi)}</div>
+                    <span className={`${styles.badgePill} ${notif.lu ? styles.badgeConfirmee : styles.badgeAConfirmer}`}>
+                      {notif.lu ? "✓✓ Lu" : "🕒 En attente"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {(ecran === "historique" || ecran === "parties-prenantes") && (
             <div className={styles.panel} style={{ maxWidth: 520 }}>
               <div className={styles.panelTitle}>{TITRE_ECRAN[ecran]}</div>
               <div className={styles.sessionMeta}>Écran à venir — hors périmètre de cette itération.</div>

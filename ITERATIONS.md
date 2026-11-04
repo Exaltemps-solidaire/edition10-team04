@@ -166,12 +166,38 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `DEPLOIEMENT.md` : sections « Services externes » et « Connu comme fragile ou inachevé » mises à jour.
     - `ITERATIONS.md` : section « À venir » recentrée sur ce qui reste réellement à faire.
 
+## Itération 6 (ad hoc) : écran Notifications réel (stats par destinataire + liste)
+
+- **Origine** : demande du développeur, hors plan initial — remplacer la coquille « à venir » de l'écran Notifications par un contenu réel : 3 cartes de statistiques par type de destinataire (Enseignants, Financeurs, Responsables) et une liste de toutes les communications envoyées. 10 minutes annoncées (temps restant jusqu'à la fin du build, interprété comme budget de codage, cohérent avec les itérations précédentes).
+- ❗️Aucune donnée de notification n'existait avant cette itération. J'ai créé un nouveau module `frontend/src/data/notifications.ts` avec 9 communications en dur (3 par type de destinataire, mélange lu/en attente), cohérentes avec les enseignants/financeurs déjà présents dans `seances.ts` — ce ne sont pas des données du modèle imposé par l'association (toujours non chargé).
+- **Dans le périmètre** :
+  - 3 cartes en tête d'écran (réutilisent le style `kpiCard`) : icône emoji par type (🍎 Enseignants, 💼 Financeurs, 🧭 Responsables), nombre total et taux de lecture en %, calculés depuis les données via `compterParDestinataire` (pas des chiffres d'exemple en dur).
+  - Liste des 9 notifications : icône destinataire, nom + rôle, objet, date d'envoi, badge de statut (vert « ✓✓ Lu » ou jaune « 🕒 En attente »), bordure gauche verte ou orange selon le statut (`styles.notifListRow`).
+  - `frontend/src/data/notifications.ts` : `compterParDestinataire`, testée.
+- **Hors périmètre** : création/édition de notifications, envoi réel, filtre/tri de la liste (affichée telle quelle, comme la liste des rappels du tableau de bord) ; Historique et Parties prenantes restent des coquilles « à venir ».
+- **Critères d'acceptation** :
+  - Étant donné l'écran Notifications, alors les 3 cartes affichent un total et un taux de lecture calculés depuis les données, pour chacun des 3 types de destinataire.
+  - Étant donné la liste, chaque ligne affiche icône, nom + rôle, objet, date, et un badge « Lu » (vert) ou « En attente » (jaune), avec la bordure gauche de la couleur correspondante.
+  - Étant donné une notification « en attente », son badge et sa bordure sont jaunes/orange ; étant donné « lue », ils sont verts.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 2 minutes (large marge, aucun dépassement).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du code (le rendu visuel réel n'a pas pu être inspecté dans un navigateur par l'agent) — à confirmer par le développeur.
+  - Tests unitaires : 2 ajoutés (`compterParDestinataire` : calcul total/lus/taux par type + type sans notification à 0%) ; `npm test` : 9 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `localhost:8080/` → 200 (contient « Validations en attente » du tableau de bord par défaut) ; `/health` et `/sante` → `ok` sur le front comme sur l'api. Le contenu de l'écran Notifications lui-même n'est affiché qu'après clic côté client (SPA), donc non visible par `curl` sur `/` — vérifié par lecture de code uniquement.
+  - **Modifications** :
+    - `frontend/src/data/notifications.ts` (nouveau) : type `Notification`, 9 entrées en dur, `compterParDestinataire`.
+    - `frontend/src/data/notifications.test.ts` (nouveau) : 2 tests.
+    - `frontend/src/app/page.tsx` : écran Notifications réel (3 cartes + liste), séparé de la coquille Historique/Parties prenantes.
+    - `frontend/src/app/page.module.css` : `.notifListRow`, `.notifListIcone`, `.notifListInfo`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 5 : les écrans Reporter/Validation/Mail existaient déjà en mock depuis les itérations 2-4 ; retirés de cette liste._
+_Mis à jour après l'itération 6 : l'écran Notifications est sorti de la liste des coquilles._
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
 2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-3. Contenu réel des écrans Notifications, Historique et Parties prenantes (coquilles « à venir » depuis l'itération 4).
+3. Contenu réel des écrans Historique et Parties prenantes (coquilles « à venir » depuis l'itération 4).
 4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4.
 5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
