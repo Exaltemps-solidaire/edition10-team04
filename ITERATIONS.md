@@ -139,10 +139,39 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : 4 entrées de nav, écran Séances (filtres + tableau), 3 écrans placeholder, modale de détail avec actions.
     - `frontend/src/app/page.module.css` : styles tableau, barre d'outils, modale.
 
+## Itération 5 (ad hoc) : paiement de dette technique (docs + démo désynchronisées)
+
+- **Origine** : demande du développeur, hors plan initial — « traites toutes les dettes techniques », 10 minutes annoncées. Pas de nouvel écran ni de nouvelle logique métier : audit et remise à jour des artefacts que les itérations 2 à 4 avaient laissés dériver.
+- **Dans le périmètre** :
+  - `e2e/demo.spec.ts` : réécrit. Il affirmait encore des textes du prototype d'origine (« Tableau de bord des séances », « Demande de report en attente »), disparus depuis la refonte de l'itération 3 — le script n'aurait jamais pu passer tel quel. Reconstruit pour suivre le parcours réel : accueil → KPI du tableau de bord → écran Séances (en-tête de colonne « Projet ») → clic sur une ligne → confirmation dans la modale.
+  - `DEPLOIEMENT.md` : sections « Services externes » et « Connu comme fragile ou inachevé » réécrites. Elles ne listaient qu'un seul écran (« Tableau de bord ») et une utilisatrice fictive périmée ; elles ne mentionnaient ni l'écran Séances, ni les 3 écrans coquille, ni le blocage Playwright.
+  - `ITERATIONS.md`, section « À venir » : les écrans Reporter/Validation/Mail y figuraient comme non commencés alors qu'ils sont en mock depuis les itérations 2 à 4 — retirés, liste recentrée sur ce qui reste vraiment ouvert (modèle de données, écran « Qui êtes-vous ? », contenu réel des 3 écrans coquille, exports fonctionnels, blocage Playwright).
+  - Audit du CSS (`page.module.css`) par comparaison avec les classes utilisées dans `page.tsx` : aucune classe orpheline trouvée, rien à retirer.
+- **Hors périmètre** : le blocage Playwright lui-même (bibliothèques système manquantes, nécessite root sur une machine partagée — documenté, pas levé) ; le contenu réel des écrans coquille ; aucune modification de `page.tsx` ou `seances.ts` — cette itération ne touche ni écran ni logique métier, donc pas de nouveau test Vitest.
+- **Critères d'acceptation** :
+  - Étant donné `e2e/demo.spec.ts`, quand on le relit, alors chaque assertion de texte correspond à un libellé présent dans l'écran actuel (vérifié par lecture croisée avec `page.tsx`, pas par exécution — Playwright reste bloqué sur cette machine).
+  - Étant donné `DEPLOIEMENT.md`, quand on le compare aux écrans livrés, alors les 5 écrans fonctionnels, les 3 coquilles et les éléments décoratifs sont tous listés.
+  - Étant donné la section « À venir » de `ITERATIONS.md`, quand on la compare aux itérations déjà faites, alors elle ne répète aucun item déjà livré.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 3 minutes (large marge, aucun dépassement).
+  - Critères d'acceptation : les 3 satisfaits.
+  - Tests unitaires : aucun ajouté — itération docs/démo uniquement, aucune logique métier nouvelle. `npm test` : 7 tests toujours passants (inchangé).
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : **aucun rebuild/redéploiement nécessaire** — `e2e/` et les fichiers `.md` ne font pas partie du build statique du front (confirmé : seuls `e2e/demo.spec.ts`, `DEPLOIEMENT.md`, `ITERATIONS.md` sont modifiés, aucun fichier sous `frontend/src/`).
+  - Démo (`e2e/demo.spec.ts`) : remise à jour, mais toujours **non exécutée** sur cette machine (bibliothèques système manquantes pour Chromium, `libnspr4.so` et consorts) — vérifiée uniquement par lecture et par `npx eslint` (0 erreur).
+  - ⚠️ Dette restante, non traitée ici et documentée dans « À venir » : écrans coquille (Notifications/Historique/Parties prenantes), boutons décoratifs (Nouvelle séance, exports), absence d'écran « Qui êtes-vous ? », modèle de données imposé jamais chargé, blocage Playwright. Rien de tout cela n'est un oubli de cette itération : ce sont des choix déjà actés (hors périmètre) dans les itérations 1 à 4.
+  - **Modifications** :
+    - `e2e/demo.spec.ts` : réécrit pour suivre l'écran actuel (tableau de bord → Séances → détail → Confirmer).
+    - `DEPLOIEMENT.md` : sections « Services externes » et « Connu comme fragile ou inachevé » mises à jour.
+    - `ITERATIONS.md` : section « À venir » recentrée sur ce qui reste réellement à faire.
+
 ## À venir (hors budget de cette session)
 
-1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant tout écran réel.
-2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice).
-3. Écran Reporter une séance (formulaire animatrice).
-4. Écran Validation — Coordinatrice (une validation déclenche agenda + fichier + historique + message).
-5. Écran Mail de rappel (J-7/J-2/J-1, bouton reprogrammation).
+_Mis à jour après l'itération 5 : les écrans Reporter/Validation/Mail existaient déjà en mock depuis les itérations 2-4 ; retirés de cette liste._
+
+1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
+2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
+3. Contenu réel des écrans Notifications, Historique et Parties prenantes (coquilles « à venir » depuis l'itération 4).
+4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4.
+5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.

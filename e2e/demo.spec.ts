@@ -8,7 +8,18 @@ test("Démo : le cas passant", async ({ page }) => {
   });
 
   await test.step("Je consulte le tableau de bord des séances", async () => {
-    await expect(page.getByText("Tableau de bord des séances")).toBeVisible();
-    await expect(page.getByText("Demande de report en attente").first()).toBeVisible();
+    await expect(page.getByText("Bonjour Sophie")).toBeVisible();
+    await expect(page.getByText("Validations en attente")).toBeVisible();
+  });
+
+  await test.step("Je consulte la liste complète des séances", async () => {
+    await page.getByRole("button", { name: /Séances/ }).click();
+    await expect(page.getByRole("columnheader", { name: "Projet" })).toBeVisible();
+  });
+
+  await test.step("J'ouvre le détail d'une séance et je la confirme", async () => {
+    await page.locator("table tbody tr").first().click();
+    await expect(page.getByRole("button", { name: "Confirmer" })).toBeVisible();
+    await page.getByRole("button", { name: "Confirmer" }).click();
   });
 });
