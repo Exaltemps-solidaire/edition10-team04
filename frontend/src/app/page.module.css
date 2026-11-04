@@ -123,3 +123,184 @@
   padding: 2px 8px;
   margin-top: 6px;
 }
+
+.ligneReport {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.lienVoir {
+  background: none;
+  border: none;
+  color: #16448c;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.lienAction {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #e8edf2;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2a37;
+  cursor: pointer;
+}
+
+.lienAction:last-child {
+  border-bottom: none;
+}
+
+.topbarBack {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 12px 0 0;
+}
+
+.ecran {
+  padding-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a9bb0;
+  text-transform: uppercase;
+  margin: 10px 0 4px;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e8edf2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1f2a37;
+}
+
+.formTextarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.btnPrimary,
+.btnPrimaryVert,
+.btnAlerte {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.btnPrimary {
+  background: #16448c;
+}
+
+.btnPrimaryVert {
+  background: #4a7a00;
+  margin-top: 0;
+}
+
+.btnAlerte {
+  background: #c2410c;
+  margin-top: 0;
+}
+
+.btnRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 16px 16px;
+}
+
+.diffBand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border-radius: 12px;
+  margin: 0 16px 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(22, 68, 140, 0.08);
+}
+
+.diffLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #8a9bb0;
+  font-weight: 700;
+}
+
+.diffVal {
+  font-weight: 700;
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.diffArrow {
+  font-size: 18px;
+  color: #8a9bb0;
+}
+
+.notifRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.notifRow:last-child {
+  border-bottom: none;
+}
+
+.mailWrap {
+  background: #fff;
+  border-radius: 12px;
+  margin: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(22, 68, 140, 0.08);
+}
+
+.mailHeaderBand {
+  background: #f4f8ec;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.mailBody {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mailRecap {
+  background: #f4f8ec;
+  border-radius: 8px;
+  padding: 4px 12px;
+  margin: 12px 0;
+}

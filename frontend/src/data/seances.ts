@@ -68,3 +68,23 @@ export const seances: Seance[] = [
 export function seancesAvecReportEnAttente(liste: Seance[]): Seance[] {
   return liste.filter((seance) => seance.demandeDeReportEnAttente);
 }
+
+export type DecisionReport = "validee" | "refusee";
+
+export function traiterDemandeDeReport(
+  liste: Seance[],
+  id: string,
+  decision: DecisionReport,
+  nouvelleDate?: string,
+): Seance[] {
+  return liste.map((seance) =>
+    seance.id === id
+      ? {
+          ...seance,
+          demandeDeReportEnAttente: false,
+          statut: decision === "validee" ? "reportee" : seance.statut,
+          date: decision === "validee" && nouvelleDate ? nouvelleDate : seance.date,
+        }
+      : seance,
+  );
+}

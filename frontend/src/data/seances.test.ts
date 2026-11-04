@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { seancesAvecReportEnAttente, type Seance } from "./seances";
+import { seancesAvecReportEnAttente, traiterDemandeDeReport, type Seance } from "./seances";
 
 const baseSeance: Seance = {
   id: "x",
@@ -28,5 +28,31 @@ describe("seancesAvecReportEnAttente", () => {
     const liste: Seance[] = [{ ...baseSeance, demandeDeReportEnAttente: false }];
 
     expect(seancesAvecReportEnAttente(liste)).toEqual([]);
+  });
+});
+
+describe("traiterDemandeDeReport", () => {
+  it("valide une demande : statut reportée, nouvelle date, demande levée", () => {
+    const liste: Seance[] = [{ ...baseSeance, demandeDeReportEnAttente: true }];
+
+    const resultat = traiterDemandeDeReport(liste, "x", "validee", "2027-02-01");
+
+    expect(resultat[0]).toMatchObject({
+      statut: "reportee",
+      date: "2027-02-01",
+      demandeDeReportEnAttente: false,
+    });
+  });
+
+  it("refuse une demande : le statut et la date ne changent pas, la demande est levée", () => {
+    const liste: Seance[] = [{ ...baseSeance, demandeDeReportEnAttente: true }];
+
+    const resultat = traiterDemandeDeReport(liste, "x", "refusee");
+
+    expect(resultat[0]).toMatchObject({
+      statut: "confirmee",
+      date: "2027-01-01",
+      demandeDeReportEnAttente: false,
+    });
   });
 });
