@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { seancesAvecReportEnAttente, traiterDemandeDeReport, type Seance } from "./seances";
+import { compterParStatut, seancesAvecReportEnAttente, traiterDemandeDeReport, type Seance } from "./seances";
 
 const baseSeance: Seance = {
   id: "x",
@@ -53,6 +53,23 @@ describe("traiterDemandeDeReport", () => {
       statut: "confirmee",
       date: "2027-01-01",
       demandeDeReportEnAttente: false,
+    });
+  });
+});
+
+describe("compterParStatut", () => {
+  it("compte les séances par statut, y compris les statuts absents (0)", () => {
+    const liste: Seance[] = [
+      { ...baseSeance, id: "1", statut: "confirmee" },
+      { ...baseSeance, id: "2", statut: "confirmee" },
+      { ...baseSeance, id: "3", statut: "a_confirmer" },
+    ];
+
+    expect(compterParStatut(liste)).toEqual({
+      a_confirmer: 1,
+      confirmee: 2,
+      realisee: 0,
+      reportee: 0,
     });
   });
 });

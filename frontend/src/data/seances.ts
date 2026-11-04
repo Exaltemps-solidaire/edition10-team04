@@ -63,10 +63,44 @@ export const seances: Seance[] = [
     statut: "reportee",
     demandeDeReportEnAttente: true,
   },
+  {
+    id: "6",
+    projet: "Mer et plastique",
+    ecole: "École Carnot (Cannes)",
+    enseignant: "Lucia M.",
+    date: "2027-02-02",
+    statut: "confirmee",
+    demandeDeReportEnAttente: false,
+  },
+  {
+    id: "7",
+    projet: "Zones humides",
+    ecole: "École des Oliviers",
+    enseignant: "S. Benali",
+    date: "2027-02-04",
+    statut: "a_confirmer",
+    demandeDeReportEnAttente: false,
+  },
+  {
+    id: "8",
+    projet: "Forêt méditerranéenne",
+    ecole: "Collège Jean Moulin",
+    enseignant: "M. Durant",
+    date: "2026-12-12",
+    statut: "realisee",
+    demandeDeReportEnAttente: false,
+  },
 ];
 
 export function seancesAvecReportEnAttente(liste: Seance[]): Seance[] {
   return liste.filter((seance) => seance.demandeDeReportEnAttente);
+}
+
+export function compterParStatut(liste: Seance[]): Record<StatutSeance, number> {
+  return liste.reduce(
+    (compte, seance) => ({ ...compte, [seance.statut]: compte[seance.statut] + 1 }),
+    { a_confirmer: 0, confirmee: 0, realisee: 0, reportee: 0 } as Record<StatutSeance, number>,
+  );
 }
 
 export type DecisionReport = "validee" | "refusee";

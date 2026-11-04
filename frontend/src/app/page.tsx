@@ -4,6 +4,8 @@ import { useState } from "react";
 import styles from "./page.module.css";
 import {
   seances as seancesInitiales,
+  seancesAvecReportEnAttente,
+  compterParStatut,
   LIBELLE_STATUT,
   traiterDemandeDeReport,
   type DecisionReport,
@@ -20,8 +22,30 @@ const CLASSE_BADGE: Record<StatutSeance, string> = {
   reportee: styles.badgeReportee,
 };
 
+const NAV = [
+  { ecran: "dashboard" as const, icone: "📊", libelle: "Tableau de bord" },
+  { ecran: "reporter" as const, icone: "📅", libelle: "Reporter une séance" },
+  { ecran: "validation" as const, icone: "✅", libelle: "Validations" },
+  { ecran: "mail" as const, icone: "✉️", libelle: "Rappels" },
+];
+
+const TITRE_ECRAN: Record<Ecran, string> = {
+  dashboard: "Tableau de bord",
+  reporter: "Reporter une séance",
+  validation: "Demande de report",
+  mail: "Rappel automatique",
+};
+
 function formaterDate(date: string, options: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" }): string {
   return new Date(date).toLocaleDateString("fr-FR", options);
+}
+
+function jourMois(date: string): { jour: string; mois: string } {
+  const d = new Date(date);
+  return {
+    jour: d.toLocaleDateString("fr-FR", { day: "2-digit" }),
+    mois: d.toLocaleDateString("fr-FR", { month: "short" }).replace(".", ""),
+  };
 }
 
 export default function Home() {
@@ -35,10 +59,16 @@ export default function Home() {
   );
 
   const seanceSelectionnee = seances.find((s) => s.id === idSelectionne) ?? null;
+  const enAttente = seancesAvecReportEnAttente(seances);
+  const compte = compterParStatut(seances);
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);
     setEcran(cible);
+  }
+
+  function allerReporter() {
+    ouvrirEcran(enAttente[0]?.id ?? seances[0].id, "reporter");
   }
 
   function soumettreReport(e: React.FormEvent) {
@@ -56,207 +86,253 @@ export default function Home() {
   }
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        {ecran !== "dashboard" && (
-          <div className={styles.topbar}>
-            <button className={styles.topbarBack} onClick={() => setEcran("dashboard")} aria-label="Retour">
-              ←
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarLogo}>
+          📅 Médi<span>Plan</span>
+        </div>
+        <nav className={styles.sidebarNav}>
+          {NAV.map((item) => (
+            <button
+              key={item.ecran}
+              className={`${styles.navItem} ${ecran === item.ecran ? styles.navItemActive : ""}`}
+              onClick={() => (item.ecran === "reporter" ? allerReporter() : setEcran(item.ecran))}
+            >
+              <span>{item.icone}</span>
+              {item.libelle}
             </button>
-            <div className={styles.topbarTitre}>
-              {ecran === "reporter" && "Reporter une séance"}
-              {ecran === "validation" && "Demande de report"}
-              {ecran === "mail" && (
-                <>
-                  Médi<span>Plan</span> · Rappel
-                </>
-              )}
+          ))}
+        </nav>
+        <div className={styles.sidebarUser}>
+          <div className={styles.avatar}>SL</div>
+          <div>
+            <div className={styles.sidebarUserNom}>Sophie Lefèvre</div>
+            <div className={styles.sidebarUserRole}>Coordinatrice</div>
+          </div>
+        </div>
+      </aside>
+
+      <div className={styles.main}>
+        <header className={styles.header}>
+          <div className={styles.headerTitle}>{TITRE_ECRAN[ecran]}</div>
+          <div className={styles.searchBar}>🔍 Rechercher une séance, une école…</div>
+          <div className={styles.headerActions}>
+            <div className={styles.bellWrap}>
+              🔔<span className={styles.bellDot} />
+            </div>
+            <div className={styles.avatar} style={{ background: "#dbeafe", color: "#1d4ed8" }}>
+              SL
             </div>
           </div>
-        )}
+        </header>
 
-        {ecran === "dashboard" && (
-          <>
-            <div className={styles.topbar}>
-              <div className={styles.topbarTitre}>
-                Médi<span>Plan</span>
+        <div className={styles.content}>
+          {ecran === "dashboard" && (
+            <>
+              <div className={styles.greeting}>Bonjour Sophie 👋</div>
+              <div className={styles.subtitle}>
+                {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </div>
-              <div className={styles.topbarUtilisateur}>
-                Claire Lefèvre
-                <br />
-                Coordinatrice de projet
-              </div>
-            </div>
 
-            <div className={styles.sectionTitre}>Tableau de bord des séances</div>
-            <div className={styles.carte}>
-              {seances.map((seance) => (
-                <div key={seance.id} className={styles.ligneSeance}>
-                  <div className={styles.ligneHaut}>
-                    <div>
-                      <div className={styles.titre}>{seance.projet}</div>
-                      <div className={styles.detail}>
-                        {formaterDate(seance.date)} · {seance.ecole} · {seance.enseignant}
+              <div className={styles.kpiGrid}>
+                <div className={styles.kpiCard}>
+                  <div className={`${styles.kpiIcon} ${styles.kpiIconBlue}`}>📘</div>
+                  <div className={styles.kpiValue}>{compte.confirmee}</div>
+                  <div className={styles.kpiLabel}>Séances planifiées</div>
+                </div>
+                <div className={styles.kpiCard}>
+                  <div className={`${styles.kpiIcon} ${styles.kpiIconYellow}`}>⏳</div>
+                  <div className={styles.kpiValue}>{compte.a_confirmer}</div>
+                  <div className={styles.kpiLabel}>À confirmer</div>
+                  {compte.a_confirmer > 0 && <div className={styles.kpiWarning}>⚠ nécessite une action</div>}
+                </div>
+                <div className={styles.kpiCard}>
+                  <div className={`${styles.kpiIcon} ${styles.kpiIconRed}`}>↺</div>
+                  <div className={styles.kpiValue}>{compte.reportee}</div>
+                  <div className={styles.kpiLabel}>Séances reportées</div>
+                </div>
+                <div className={styles.kpiCard}>
+                  <div className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>✔</div>
+                  <div className={styles.kpiValue}>{compte.realisee}</div>
+                  <div className={styles.kpiLabel}>Séances réalisées</div>
+                </div>
+              </div>
+
+              <div className={styles.mainGrid}>
+                <div className={styles.panel}>
+                  <div className={styles.panelTitle}>Séances à venir</div>
+                  {seances.slice(0, 4).map((seance) => {
+                    const { jour, mois } = jourMois(seance.date);
+                    return (
+                      <div key={seance.id} className={styles.sessionRow}>
+                        <div className={styles.sessionDate}>
+                          <span className={styles.sessionDateNum}>{jour}</span>
+                          <span className={styles.sessionDateMois}>{mois}</span>
+                        </div>
+                        <div className={styles.sessionInfo}>
+                          <div className={styles.sessionProjet}>{seance.projet}</div>
+                          <div className={styles.sessionMeta}>
+                            {seance.ecole} · {seance.enseignant}
+                          </div>
+                        </div>
+                        <span className={`${styles.badgePill} ${CLASSE_BADGE[seance.statut]}`}>
+                          {LIBELLE_STATUT[seance.statut]}
+                        </span>
                       </div>
-                    </div>
-                    <span className={`${styles.badge} ${CLASSE_BADGE[seance.statut]}`}>
-                      {LIBELLE_STATUT[seance.statut]}
-                    </span>
+                    );
+                  })}
+                </div>
+
+                <div>
+                  <div className={`${styles.panel} ${styles.panelOrange}`}>
+                    <div className={styles.panelTitle}>⚠ Validations en attente</div>
+                    {enAttente.length === 0 && <div className={styles.sessionMeta}>Aucune demande en attente.</div>}
+                    {enAttente.map((seance) => (
+                      <div key={seance.id} className={styles.validationItem}>
+                        <div className={styles.validationProjet}>{seance.projet}</div>
+                        <div className={styles.validationMeta}>
+                          {seance.ecole} · demande de report
+                        </div>
+                        <button className={styles.lienVoir} onClick={() => ouvrirEcran(seance.id, "validation")}>
+                          Voir →
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  {seance.demandeDeReportEnAttente && (
-                    <div className={styles.ligneReport}>
-                      <span className={styles.tagReport}>⚠ Demande de report en attente</span>
-                      <button className={styles.lienVoir} onClick={() => ouvrirEcran(seance.id, "validation")}>
-                        Voir →
-                      </button>
+
+                  <div className={styles.panel}>
+                    <div className={styles.panelTitle}>🤖 Rappels automatiques</div>
+                    <div className={styles.rappelRow}>
+                      <span className={styles.rappelIcon}>🤖</span>
+                      <span>J-7 envoyé à M. Durant (Alimentation durable)</span>
                     </div>
-                  )}
+                    <div className={styles.rappelRow}>
+                      <span className={styles.rappelIcon}>🤖</span>
+                      <span>J-2 prévu pour N. Ferreira (Eau et milieu marin)</span>
+                    </div>
+                    <button className={styles.lienVoir} onClick={() => setEcran("mail")}>
+                      Voir un exemple →
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            </>
+          )}
 
-            <div className={styles.sectionTitre}>Démo du parcours</div>
-            <div className={styles.carte}>
-              <button className={styles.lienAction} onClick={() => ouvrirEcran("2", "reporter")}>
-                📅 Reporter une séance
-              </button>
-              <button className={styles.lienAction} onClick={() => setEcran("mail")}>
-                ✉️ Aperçu du mail de rappel
-              </button>
-            </div>
-          </>
-        )}
-
-        {ecran === "reporter" && seanceSelectionnee && (
-          <div className={styles.ecran}>
-            <div className={styles.sectionTitre}>Séance concernée</div>
-            <div className={styles.carte} style={{ padding: 14 }}>
-              <div className={styles.titre}>
+          {ecran === "reporter" && seanceSelectionnee && (
+            <div className={styles.panel} style={{ maxWidth: 520 }}>
+              <div className={styles.panelTitle}>Séance concernée</div>
+              <div className={styles.sessionProjet}>
                 {seanceSelectionnee.projet} — {seanceSelectionnee.enseignant}
               </div>
-              <div className={styles.detail}>{seanceSelectionnee.ecole}</div>
-              <div className={styles.detail} style={{ marginTop: 8, fontWeight: 700, color: "#c2410c" }}>
-                Date actuelle : {formaterDate(seanceSelectionnee.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              <div className={styles.sessionMeta}>{seanceSelectionnee.ecole}</div>
+              <div className={styles.kpiWarning} style={{ marginTop: 10 }}>
+                Date actuelle :{" "}
+                {formaterDate(seanceSelectionnee.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </div>
+
+              <form onSubmit={soumettreReport}>
+                <label className={styles.formLabel}>Nouvelle date</label>
+                <input
+                  type="date"
+                  className={styles.formInput}
+                  value={nouvelleDate}
+                  onChange={(e) => setNouvelleDate(e.target.value)}
+                />
+
+                <label className={styles.formLabel}>Motif du report</label>
+                <select className={styles.formInput} value={motif} onChange={(e) => setMotif(e.target.value)}>
+                  <option>Enseignant absent</option>
+                  <option>Sortie scolaire imprévue (natation…)</option>
+                  <option>Activité sportive</option>
+                  <option>Autre</option>
+                </select>
+
+                <label className={styles.formLabel}>Précisions (facultatif)</label>
+                <textarea
+                  className={styles.formTextarea}
+                  value={precisions}
+                  onChange={(e) => setPrecisions(e.target.value)}
+                />
+
+                <button type="submit" className={styles.btnPrimary}>
+                  Envoyer la demande à la coordinatrice
+                </button>
+              </form>
+            </div>
+          )}
+
+          {ecran === "validation" && seanceSelectionnee && (
+            <div style={{ maxWidth: 520 }}>
+              <div className={styles.panel}>
+                <div className={styles.panelTitle}>Séance concernée</div>
+                <div className={styles.sessionProjet}>
+                  {seanceSelectionnee.projet} — {seanceSelectionnee.enseignant}
+                </div>
+                <div className={styles.sessionMeta}>{seanceSelectionnee.ecole}</div>
+              </div>
+
+              <div className={styles.panel}>
+                <div className={styles.panelTitle}>Changement de date</div>
+                <div className={styles.diffBand}>
+                  <div>
+                    <div className={styles.diffLabel}>Ancienne date</div>
+                    <div className={styles.diffVal}>{formaterDate(seanceSelectionnee.date)}</div>
+                  </div>
+                  <div className={styles.diffArrow}>→</div>
+                  <div>
+                    <div className={styles.diffLabel}>Nouvelle date</div>
+                    <div className={styles.diffVal}>{formaterDate(nouvelleDate)}</div>
+                  </div>
+                </div>
+                <div className={styles.sessionMeta} style={{ marginTop: 12 }}>
+                  Motif : <strong>{motif}</strong> — « {precisions} »
+                </div>
+              </div>
+
+              <div className={styles.panel}>
+                <div className={styles.panelTitle}>Si vous validez, automatiquement :</div>
+                <div className={styles.notifRow}><span>✔ Agenda Outlook mis à jour</span><span className={`${styles.badgePill} ${styles.badgeConfirmee}`}>Auto</span></div>
+                <div className={styles.notifRow}><span>✔ Fichier Excel du projet mis à jour</span><span className={`${styles.badgePill} ${styles.badgeConfirmee}`}>Auto</span></div>
+                <div className={styles.notifRow}><span>✔ Historique du report enregistré</span><span className={`${styles.badgePill} ${styles.badgeConfirmee}`}>Auto</span></div>
+              </div>
+
+              <div className={styles.btnRow}>
+                <button className={styles.btnPrimaryVert} onClick={() => traiter("validee")}>
+                  ✔ Valider le report
+                </button>
+                <button className={styles.btnAlerte} onClick={() => traiter("refusee")}>
+                  ✕ Refuser
+                </button>
               </div>
             </div>
+          )}
 
-            <div className={styles.sectionTitre}>Nouvelle date proposée</div>
-            <form className={styles.carte} onSubmit={soumettreReport}>
-              <label className={styles.formLabel}>Date</label>
-              <input
-                type="date"
-                className={styles.formInput}
-                value={nouvelleDate}
-                onChange={(e) => setNouvelleDate(e.target.value)}
-              />
-
-              <label className={styles.formLabel}>Motif du report</label>
-              <select className={styles.formInput} value={motif} onChange={(e) => setMotif(e.target.value)}>
-                <option>Enseignant absent</option>
-                <option>Sortie scolaire imprévue (natation…)</option>
-                <option>Activité sportive</option>
-                <option>Autre</option>
-              </select>
-
-              <label className={styles.formLabel}>Précisions (facultatif)</label>
-              <textarea
-                className={styles.formTextarea}
-                value={precisions}
-                onChange={(e) => setPrecisions(e.target.value)}
-              />
-
-              <button type="submit" className={styles.btnPrimary}>
-                Envoyer la demande à la coordinatrice
-              </button>
-            </form>
-          </div>
-        )}
-
-        {ecran === "validation" && seanceSelectionnee && (
-          <div className={styles.ecran}>
-            <div className={styles.sectionTitre}>Séance concernée</div>
-            <div className={styles.carte} style={{ padding: 14 }}>
-              <div className={styles.titre}>
-                {seanceSelectionnee.projet} — {seanceSelectionnee.enseignant}
-              </div>
-              <div className={styles.detail}>{seanceSelectionnee.ecole}</div>
-            </div>
-
-            <div className={styles.sectionTitre}>Changement de date</div>
-            <div className={styles.diffBand}>
-              <div>
-                <div className={styles.diffLabel}>Ancienne date</div>
-                <div className={styles.diffVal}>{formaterDate(seanceSelectionnee.date)}</div>
-              </div>
-              <div className={styles.diffArrow}>→</div>
-              <div>
-                <div className={styles.diffLabel}>Nouvelle date</div>
-                <div className={styles.diffVal}>{formaterDate(nouvelleDate)}</div>
-              </div>
-            </div>
-            <div className={styles.carte} style={{ padding: 14 }}>
-              <div className={styles.detail} style={{ fontWeight: 700 }}>Motif</div>
-              <div className={styles.titre}>{motif}</div>
-              <div className={styles.detail}>« {precisions} »</div>
-            </div>
-
-            <div className={styles.sectionTitre}>Si vous validez, automatiquement :</div>
-            <div className={styles.carte}>
-              <div className={styles.notifRow}>
-                <span>✔ Agenda Outlook mis à jour</span>
-                <span className={`${styles.badge} ${styles.badgeConfirmee}`}>Auto</span>
-              </div>
-              <div className={styles.notifRow}>
-                <span>✔ Fichier Excel du projet mis à jour</span>
-                <span className={`${styles.badge} ${styles.badgeConfirmee}`}>Auto</span>
-              </div>
-              <div className={styles.notifRow}>
-                <span>✔ Historique du report enregistré</span>
-                <span className={`${styles.badge} ${styles.badgeConfirmee}`}>Auto</span>
-              </div>
-            </div>
-
-            <div className={styles.btnRow}>
-              <button className={styles.btnPrimaryVert} onClick={() => traiter("validee")}>
-                ✔ Valider le report
-              </button>
-              <button className={styles.btnAlerte} onClick={() => traiter("refusee")}>
-                ✕ Refuser
-              </button>
-            </div>
-          </div>
-        )}
-
-        {ecran === "mail" && (
-          <div className={styles.ecran}>
-            <div className={styles.mailWrap}>
+          {ecran === "mail" && (
+            <div className={styles.panel} style={{ maxWidth: 520 }}>
               <div className={styles.mailHeaderBand}>
-                <div className={styles.detail}>Objet</div>
-                <div className={styles.titre}>Rappel — Animation Méditerranée 2000 dans 7 jours</div>
+                <div className={styles.sessionMeta}>Objet</div>
+                <div className={styles.sessionProjet}>Rappel — Animation Méditerranée 2000 dans 7 jours</div>
               </div>
-              <div className={styles.mailBody}>
-                <p>Bonjour Monsieur Durant,</p>
-                <p>
-                  Nous vous rappelons qu&apos;une animation de l&apos;association <strong>Méditerranée 2000</strong> est
-                  prévue dans votre classe dans <strong>7 jours</strong>.
-                </p>
-                <div className={styles.mailRecap}>
-                  <div className={styles.notifRow}><span>Programme</span><span>Abeilles et biodiversité</span></div>
-                  <div className={styles.notifRow}><span>Classe</span><span>CE2 — École Carnot, Cannes</span></div>
-                  <div className={styles.notifRow}><span>Date</span><span>Mardi 14 janvier 2027</span></div>
-                  <div className={styles.notifRow}><span>Horaire</span><span>09h00 – 11h00</span></div>
-                </div>
-                <p>Si cette date ne vous convient plus, vous pouvez demander une reprogrammation.</p>
+              <p>Bonjour Monsieur Durant,</p>
+              <p>
+                Nous vous rappelons qu&apos;une animation de l&apos;association <strong>Méditerranée 2000</strong> est
+                prévue dans votre classe dans <strong>7 jours</strong>.
+              </p>
+              <div className={styles.mailRecap}>
+                <div className={styles.notifRow}><span>Programme</span><span>Abeilles et biodiversité</span></div>
+                <div className={styles.notifRow}><span>Classe</span><span>CE2 — École Carnot, Cannes</span></div>
+                <div className={styles.notifRow}><span>Date</span><span>Mardi 14 janvier 2027</span></div>
+                <div className={styles.notifRow}><span>Horaire</span><span>09h00 – 11h00</span></div>
               </div>
-            </div>
-            <div style={{ padding: "0 16px 16px" }}>
-              <button className={styles.btnAlerte} onClick={() => ouvrirEcran("2", "reporter")}>
+              <p>Si cette date ne vous convient plus, vous pouvez demander une reprogrammation.</p>
+              <button className={styles.btnAlerte} onClick={allerReporter}>
                 ⟳ Demander une reprogrammation
               </button>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

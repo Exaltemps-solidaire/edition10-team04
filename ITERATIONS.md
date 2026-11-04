@@ -82,6 +82,34 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : composant client, 4 écrans, navigation — critères 1, 2 et 3.
     - `frontend/src/app/page.module.css` : styles des 3 nouveaux écrans.
 
+## Itération 3 (ad hoc) : nouvelle charte « SaaS » (sidebar + KPI), remplace la charte prototype
+
+- **Origine** : demande du développeur, hors plan initial — remplacer la charte visuelle du prototype (mobile, marine/vert/mer) par un design desktop façon Microsoft Planner/Notion : sidebar bleu dégradé, header avec recherche, 4 cartes KPI, panneau « Séances à venir », panneau « Validations en attente », panneau « Rappels automatiques ». 15 minutes annoncées.
+- ⚠️ Décisions prises sans validation explicite, faute de temps pour les poser en question : (1) barre de recherche et cloche de notification sont cosmétiques, non branchées ; (2) les 4 chiffres des cartes KPI sont **calculés depuis les données en mémoire** (`compterParStatut`), pas les valeurs d'exemple du brief (8/3/2/24), pour ne pas afficher des chiffres qui ne correspondent à aucune donnée réelle de l'appli ; (3) les icônes sont des emojis, pas Font Awesome, pour ne pas ajouter de dépendance externe (police/CDN) dans le budget — à signaler si l'équipe y tient.
+- **Dans le périmètre** :
+  - Nouvelle mise en page : sidebar de navigation (256px, dégradé bleu, avatar utilisateur) + header (titre, recherche, cloche, avatar) + zone de contenu, dans `frontend/src/app/page.tsx` et `frontend/src/app/page.module.css` (réécriture complète du design, nouvelle palette #2563eb/jaune/vert/rouge).
+  - Écran Tableau de bord : salutation, 4 cartes KPI (planifiées/à confirmer/reportées/réalisées), liste « Séances à venir », panneau « Validations en attente » (bordure orange), panneau « Rappels automatiques ».
+  - Écrans Reporter une séance / Validation / Mail : repris de l'itération 2, restylés dans la nouvelle charte (mêmes `panel`, mêmes couleurs).
+  - `frontend/src/data/seances.ts` : nouvelle fonction `compterParStatut` (agrégation par statut, logique métier testée) ; jeu de données en dur complété (3 séances de plus) pour que les cartes KPI aient des valeurs non triviales.
+- **Hors périmètre** : tout ce qui était déjà hors périmètre des itérations 1 et 2 (vraie base, modèle de données imposé, API, automatisations réelles) ; en plus cette fois : recherche fonctionnelle, notifications réelles, Font Awesome.
+- **Critères d'acceptation** :
+  - Étant donné le tableau de bord, quand on l'ouvre, alors les 4 cartes KPI affichent des nombres qui correspondent au compte réel des séances par statut dans les données en mémoire.
+  - Étant donné le panneau « Validations en attente », quand on clique sur « Voir → », alors l'écran de validation de la séance correspondante s'affiche, dans le même design (sidebar + header conservés implicitement via la navigation).
+  - Étant donné n'importe quel écran, quand on regarde la palette, alors plus aucune couleur de l'ancienne charte (marine/vert/mer du prototype) n'apparaît — remplacée par #2563eb et les couleurs de badges du brief.
+- **Codage estimé** : 15 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 2 minutes (large marge, pas d'alarme).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du HTML servi (textes et structure présents) ; rendu visuel non vérifié dans un navigateur par l'agent (pas d'accès visuel) — à confirmer par le développeur au premier coup d'œil.
+  - Tests unitaires : 1 ajouté sur `compterParStatut` ; `npm test` : 5 tests passent (2 de l'itération 1, 2 de l'itération 2, 1 nouveau).
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `localhost:8080/` → 200 avec le contenu du nouveau tableau de bord, `/health` et `/sante` → `ok` sur le front comme sur l'api.
+  - Démo (`e2e/demo.spec.ts`) : non mise à jour (budget consacré au design, toujours inexécutable sur cette machine — cf. itération 1). Les assertions de texte existantes (« Tableau de bord des séances », « Demande de report en attente ») ne correspondent plus aux libellés de ce nouveau design (devenus « Tableau de bord » / « Validations en attente ») — **à corriger avant toute exécution future du script**, noté ici pour ne pas l'oublier.
+  - **Modifications** :
+    - `frontend/src/data/seances.ts` : `compterParStatut` + 3 séances de données en plus.
+    - `frontend/src/data/seances.test.ts` : 1 test sur `compterParStatut`.
+    - `frontend/src/app/page.tsx` : réécriture complète (sidebar, header, 4 écrans dans la nouvelle charte).
+    - `frontend/src/app/page.module.css` : réécriture complète de la feuille de style.
+
 ## À venir (hors budget de cette session)
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant tout écran réel.
