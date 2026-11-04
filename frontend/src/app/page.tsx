@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 import {
   seances as seancesInitiales,
@@ -175,6 +175,12 @@ export default function Home() {
   const seanceHistorique = seances.find((s) => s.id === seanceHistoriqueId) ?? null;
   const evenementsTries = trierChronologiquement(evenementsHistorique);
   const contactsOnglet = contactsList.filter((c) => c.typeContact === ongletContact);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
 
   function ouvrirEcran(id: string, cible: Ecran) {
     setIdSelectionne(id);

@@ -302,16 +302,38 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/public/icons/icon-192.svg`, `frontend/public/icons/icon-512.svg` (nouveaux).
     - `frontend/src/app/layout.tsx` : ajout de `manifest`, `appleWebApp`, `icons.apple` à `metadata`, nouvel export `viewport` avec `themeColor`.
 
+## Itération 11 (ad hoc) : support PWA, partie 2/3 — service worker
+
+- **Origine** : suite de l'itération 10 (backlog item 1), demande du développeur « go partie 2 ». 10 minutes annoncées.
+- **Dans le périmètre** :
+  - `frontend/public/sw.js` : cache `mediplan-v1` ; à l'installation, pré-cache de `/` et `/manifest.json` puis `skipWaiting()` ; à l'activation, suppression de tout cache dont le nom diffère de `mediplan-v1` puis `clients.claim()` ; au fetch, stratégie cache-first pour les requêtes `GET` same-origin (hors `/api/*`, toujours réseau) avec mise en cache de la réponse réseau au passage, et repli sur `/` en cache si le réseau échoue.
+  - Enregistrement dans `frontend/src/app/page.tsx` via `useEffect` (`navigator.serviceWorker.register("/sw.js")`), adapté au composant client React plutôt qu'à un `DOMContentLoaded` global.
+- **Hors périmètre** : pré-cache exhaustif de tous les fichiers JS/CSS listés à l'avance — impossible à énumérer statiquement avec les noms de fichiers hashés générés par l'export Next.js ; le cache se remplit donc au fil des requêtes (mise en cache à la volée), une stratégie équivalente en résultat (app consultable hors-ligne après une première visite) mais qui ne pré-charge pas les assets avant la première navigation ; UI d'installation (partie 3/3).
+- **Critères d'acceptation** :
+  - Étant donné le premier chargement de l'app, quand le service worker s'active, alors `/sw.js` est enregistré (visible dans le bundle JS) et le cache `mediplan-v1` contient `/` et `/manifest.json`.
+  - Étant donné une ressource déjà en cache, quand on la redemande, alors elle est servie depuis le cache sans attendre le réseau.
+  - Étant donné un déploiement d'une nouvelle version, quand le nouveau service worker s'active, alors les caches d'une version précédente (nom différent de `mediplan-v1`) sont supprimés.
+- **Codage estimé** : 10 minutes (budget annoncé) ; pas de nouvelle logique métier pure (code d'infrastructure navigateur), donc aucun test Vitest supplémentaire — un service worker n'est de toute façon pas testable par Vitest/jsdom (API `caches`/`self` absentes de cet environnement).
+- **Bilan** :
+  - Durée de codage réelle : moins d'1 minute (large marge).
+  - Critères d'acceptation : les 3 satisfaits par lecture du code (`install`/`activate`/`fetch`) ; non vérifiables par un test automatisé dans ce projet — à confirmer par le développeur dans l'onglet Application de Chrome DevTools (Service Workers + Cache Storage) après une visite.
+  - Tests unitaires : aucun (cf. ci-dessus) ; `npm test` : 16 tests passent toujours.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` → `ok` ; `/sw.js` → 200 avec `Content-Type: application/javascript` (nécessaire pour que le navigateur accepte de l'enregistrer comme service worker) ; le code d'enregistrement est présent dans le bundle JS publié.
+  - **Modifications** :
+    - `frontend/public/sw.js` (nouveau) : cache `mediplan-v1`, `install`/`activate`/`fetch`.
+    - `frontend/src/app/page.tsx` : import `useEffect`, nouvel effet d'enregistrement du service worker.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 10 : le manifest et les icônes PWA sont livrés ; le service worker et l'UI d'installation restent à faire._
+_Mis à jour après l'itération 11 : le service worker est livré ; reste l'UI d'installation._
 
-1. ✂️ PWA, partie 2/3 : service worker (`frontend/public/sw.js`, cache-first, cache `mediplan-v1`, pré-cache de l'app shell, nettoyage des anciens caches à l'activation) et son enregistrement dans `page.tsx`.
-2. ✂️ PWA, partie 3/3 : UI d'installation (bannière bas d'écran, bouton « Installer l'app » dans la nav, gestion `beforeinstallprompt`/`appinstalled`, modal d'instructions iOS, masquage si déjà installé via `display-mode: standalone`).
-3. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
-4. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
-5. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
-6. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
-7. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
-8. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
-9. ⚠️ Remplacer l'icône `apple-touch-icon` SVG par un vrai PNG si le rendu sur l'écran d'accueil iOS n'est pas satisfaisant.
+1. ✂️ PWA, partie 3/3 : UI d'installation (bannière bas d'écran, bouton « Installer l'app » dans la nav, gestion `beforeinstallprompt`/`appinstalled`, modal d'instructions iOS, masquage si déjà installé via `display-mode: standalone`).
+2. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
+3. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
+4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4, et le bouton d'édition de contact (✏️), décoratif depuis l'itération 9.
+5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
+6. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
+7. ❗️Remplacer les 9 contacts inventés de l'écran Parties prenantes (notamment les 2 élus) par les vraies parties prenantes de l'association, une fois connues.
+8. ⚠️ Remplacer l'icône `apple-touch-icon` SVG par un vrai PNG si le rendu sur l'écran d'accueil iOS n'est pas satisfaisant.
+9. ⚠️ Vérifier qu'un déploiement de nouvelle version de l'app ne laisse pas des visiteurs coincés sur une version mise en cache par le service worker (prévoir un bump de `CACHE_NAME` à chaque itération touchant au front, ou une invalidation plus automatique).
