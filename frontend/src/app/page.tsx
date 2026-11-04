@@ -29,6 +29,14 @@ import {
   LIBELLE_CANAL,
   type TypeEvenement,
 } from "@/data/historique";
+import {
+  etapesAutomatisation,
+  avancerEtape,
+  toutesTerminees,
+  DELAI_ETAPE_MS,
+  type StatutEtape,
+  type ClasseCouleurEtape,
+} from "@/data/automatisation";
 
 type Ecran =
   | "dashboard"
@@ -38,7 +46,8 @@ type Ecran =
   | "notifications"
   | "historique"
   | "parties-prenantes"
-  | "mail";
+  | "mail"
+  | "automatisation";
 
 const CLASSE_BADGE: Record<StatutSeance, string> = {
   confirmee: styles.badgeConfirmee,
@@ -56,6 +65,14 @@ const CLASSE_ICONE_EVENEMENT: Record<TypeEvenement, string> = {
   a_venir: styles.timelineIconAVenir,
 };
 
+const CLASSE_ICONE_ETAPE: Record<ClasseCouleurEtape, string> = {
+  bleu: styles.autoStepIconBleu,
+  vert: styles.autoStepIconVert,
+  orange: styles.autoStepIconOrange,
+  violet: styles.autoStepIconViolet,
+  indigo: styles.autoStepIconIndigo,
+};
+
 const NAV = [
   { ecran: "dashboard" as const, icone: "📊", libelle: "Tableau de bord" },
   { ecran: "seances" as const, icone: "📋", libelle: "Séances" },
@@ -65,6 +82,7 @@ const NAV = [
   { ecran: "historique" as const, icone: "🕒", libelle: "Historique" },
   { ecran: "parties-prenantes" as const, icone: "👥", libelle: "Parties prenantes" },
   { ecran: "mail" as const, icone: "✉️", libelle: "Rappels" },
+  { ecran: "automatisation" as const, icone: "⚙️", libelle: "Automatisation" },
 ];
 
 const TITRE_ECRAN: Record<Ecran, string> = {
@@ -76,6 +94,7 @@ const TITRE_ECRAN: Record<Ecran, string> = {
   historique: "Historique",
   "parties-prenantes": "Parties prenantes",
   mail: "Rappel automatique",
+  automatisation: "Automatisation",
 };
 
 function formaterDate(date: string, options: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" }): string {
@@ -104,6 +123,10 @@ export default function Home() {
   const [filtreStatut, setFiltreStatut] = useState<StatutSeance | "">("");
   const [filtreMois, setFiltreMois] = useState("");
   const [seanceDetail, setSeanceDetail] = useState<string | null>(null);
+  const [statutsEtapes, setStatutsEtapes] = useState<StatutEtape[]>(
+    etapesAutomatisation.map(() => "en_attente"),
+  );
+  const [demoLancee, setDemoLancee] = useState(false);
 
   const seanceSelectionnee = seances.find((s) => s.id === idSelectionne) ?? null;
   const seanceEnDetail = seances.find((s) => s.id === seanceDetail) ?? null;
@@ -147,6 +170,16 @@ export default function Home() {
   function appliquerStatut(id: string, statut: StatutSeance) {
     setSeances((liste) => changerStatut(liste, id, statut));
     setSeanceDetail(null);
+  }
+
+  function lancerDemoAutomatisation() {
+    setDemoLancee(true);
+    setStatutsEtapes(etapesAutomatisation.map(() => "en_attente"));
+    etapesAutomatisation.forEach((_, index) => {
+      setTimeout(() => {
+        setStatutsEtapes((liste) => avancerEtape(liste, index));
+      }, DELAI_ETAPE_MS * (index + 1));
+    });
   }
 
   return (
@@ -585,6 +618,56 @@ export default function Home() {
               <button className={styles.btnAlerte} onClick={allerReporter}>
                 ⟳ Demander une reprogrammation
               </button>
+            </div>
+          )}
+
+          {ecran === "automatisation" && (
+            <div style={{ maxWidth: 640 }}>
+              <div className={styles.autoTrigger}>
+                <span className={styles.autoTriggerCheck}>✔</span>
+                <div>
+                  <div className={styles.sessionProjet}>Sophie a validé le report</div>
+                  <div className={styles.sessionMeta}>Déclenche automatiquement les actions ci-dessous.</div>
+                </div>
+              </div>
+
+              <div className={styles.autoStepGrid}>
+                {etapesAutomatisation.map((etape, index) => {
+                  const termine = statutsEtapes[index] === "terminee";
+                  return (
+                    <div key={etape.id} className={`${styles.autoStepCard} ${termine ? styles.autoStepCardDone : ""}`}>
+                      <div className={`${styles.autoStepIcon} ${CLASSE_ICONE_ETAPE[etape.classeCouleur]}`}>
+                        {etape.icone}
+                      </div>
+                      <div className={styles.autoStepInfo}>
+                        <div className={styles.autoStepTitre}>{etape.titre}</div>
+                        <div className={styles.sessionMeta}>{etape.description}</div>
+                      </div>
+                      <div className={styles.autoStepStatus}>{termine ? "✅" : "🕒"}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button className={styles.btnPrimary} onClick={lancerDemoAutomatisation}>
+                ▶ Lancer la démo
+              </button>
+
+              {demoLancee && toutesTerminees(statutsEtapes) && (
+                <div className={styles.autoSuccessBand}>
+                  <div className={styles.autoStepTitre}>🎉 Tout est à jour ! 5 actions réalisées en moins de 3 secondes</div>
+                  <div className={styles.autoSuccessTiles}>
+                    <div className={styles.autoSuccessTile}>📅 Outlook</div>
+                    <div className={styles.autoSuccessTile}>📊 Excel</div>
+                    <div className={styles.autoSuccessTile}>🍎 Enseignant</div>
+                    <div className={styles.autoSuccessTile}>👔 Financeur</div>
+                    <div className={styles.autoSuccessTile}>📋 Historique</div>
+                  </div>
+                  <div className={styles.sessionMeta} style={{ marginTop: 10 }}>
+                    Rappel J-7 planifié : e-mail automatique à Mme Leclerc dans 7 jours.
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

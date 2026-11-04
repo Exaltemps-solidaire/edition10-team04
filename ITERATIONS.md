@@ -219,12 +219,41 @@ Cette itération est donc la variante « squelette » de la section 3 de `CLAUDE
     - `frontend/src/app/page.tsx` : écran Historique réel (carte d'en-tête + timeline), séparé de la coquille Parties prenantes.
     - `frontend/src/app/page.module.css` : `.timelineItem`, `.timelineIconCol`, `.timelineIcon` (+ 6 variantes de couleur), `.timelineLine`, `.timelineContent`, `.timelineTitre`, `.timelineMeta`, `.timelineActeur`.
 
+## Itération 8 (ad hoc) : écran Automatisation (démo animée du workflow post-validation)
+
+- **Origine** : demande du développeur, hors plan initial — un nouvel écran « Automatisation » qui rejoue, sous forme de démo animée, les 5 actions déclenchées quand Sophie valide un report (Outlook, Excel, enseignant, financeur, historique). 10 minutes annoncées.
+- ❗️Nouvelle entrée de nav ajoutée en fin de liste (après « Rappels ») : la demande ne précisait pas d'emplacement, et c'est un écran de démonstration/pédagogie plutôt qu'un outil de travail quotidien — à confirmer avec les cadreurs si un autre emplacement est préféré.
+- **Dans le périmètre** :
+  - Carte de déclencheur (bordure bleue) : « Sophie a validé le report » avec coche verte.
+  - 5 cartes d'étape, grisées par défaut (icône colorée, titre, description, statut 🕒/✅ à droite) : Outlook (bleu), Excel (vert), Enseignant (orange), Financeur (violet), Historique (indigo).
+  - Bouton « ▶ Lancer la démo » : anime les 5 cartes une par une (600 ms d'intervalle, `DELAI_ETAPE_MS`), chacune passant de grisée/🕒 à pleine opacité/✅.
+  - Une fois les 5 étapes terminées, bandeau de succès vert : message récapitulatif, 5 tuiles emoji (📅 Outlook, 📊 Excel, 🍎 Enseignant, 👔 Financeur, 📋 Historique), ligne sur le rappel J-7 planifié.
+  - `frontend/src/data/automatisation.ts` : `avancerEtape` et `toutesTerminees`, testées.
+- **Hors périmètre** : déclenchement réel des actions (toujours aucun backend) ; bouton pour relancer/réinitialiser la démo sans changer d'écran (revenir sur l'écran la réinitialise, suffisant pour la démo) ; lien entre cet écran et une séance réelle (les noms « Mme Leclerc »/« CAF » sont ceux de la demande, pas tirés de `seances.ts`).
+- **Critères d'acceptation** :
+  - Étant donné l'écran Automatisation au premier affichage, alors les 5 cartes sont grisées avec un statut 🕒, et la carte de déclencheur est visible en haut.
+  - Étant donné un clic sur « Lancer la démo », alors les 5 cartes passent à l'état terminé (✅, pleine opacité) l'une après l'autre, à 600 ms d'intervalle.
+  - Étant donné les 5 étapes terminées, alors le bandeau de succès apparaît avec les 5 tuiles emoji et la ligne de rappel J-7.
+- **Codage estimé** : 10 minutes (budget annoncé).
+- **Bilan** :
+  - Durée de codage réelle : 2 minutes (large marge, aucun dépassement).
+  - Critères d'acceptation : les 3 satisfaits, vérifiés par lecture du code — le déroulé animé (timing, transition d'opacité) n'a pas pu être observé dans un navigateur par l'agent, à confirmer par le développeur.
+  - Tests unitaires : 3 ajoutés (`avancerEtape` : ne modifie que l'étape visée ; `toutesTerminees` : faux tant qu'une étape est en attente, vrai quand tout est terminé) ; `npm test` : 14 tests passent.
+  - Contrat de déployabilité : `./scripts/verifier-deployabilite.sh` — aucune borne.
+  - Déployé : image `frontend` reconstruite et poussée, service recréé. Vérifié en local : `/health` et `/sante` → `ok` ; `/` → 200 et contient le libellé de nav « Automatisation ». Le déroulé animé lui-même n'est pas vérifiable par `curl` (interaction + timers côté client) — vérifié par lecture de code uniquement.
+  - **Modifications** :
+    - `frontend/src/data/automatisation.ts` (nouveau) : types, 5 étapes en dur, `avancerEtape`, `toutesTerminees`, `DELAI_ETAPE_MS`.
+    - `frontend/src/data/automatisation.test.ts` (nouveau) : 3 tests.
+    - `frontend/src/app/page.tsx` : nouvelle entrée de nav « Automatisation », état `statutsEtapes`/`demoLancee`, `lancerDemoAutomatisation` (chaîne de `setTimeout`), écran complet (déclencheur, 5 cartes, bouton, bandeau de succès).
+    - `frontend/src/app/page.module.css` : `.autoTrigger`, `.autoTriggerCheck`, `.autoStepGrid`, `.autoStepCard`(+`Done`), `.autoStepIcon` (+ 5 variantes de couleur), `.autoStepInfo`, `.autoStepTitre`, `.autoStepStatus`, `.autoSuccessBand`, `.autoSuccessTiles`, `.autoSuccessTile`.
+
 ## À venir (hors budget de cette session)
 
-_Mis à jour après l'itération 7 : l'écran Historique est sorti de la liste des coquilles._
+_Mis à jour après l'itération 8 : l'écran Automatisation est livré, en plus du plan initial._
 
 1. Charger le modèle de données imposé (19 entités depuis `donnees/modele_donnees.json`) et le jeu de test CSV — préalable obligatoire avant toute vraie persistance (tout reste en mémoire côté client aujourd'hui).
 2. Écran « Qui êtes-vous ? » et droits (admin / coordinatrice / animatrice) — l'utilisatrice affichée est toujours fixe (Sophie Lefèvre).
 3. Contenu réel de l'écran Parties prenantes (dernière coquille « à venir » depuis l'itération 4).
 4. Rendre fonctionnels « Nouvelle séance » et les deux boutons d'export (Excel/PDF), purement visuels depuis l'itération 4.
 5. Lever le blocage Playwright (bibliothèques système manquantes) pour pouvoir exécuter `e2e/demo.spec.ts` sur cette machine.
+6. ⚠️ Confirmer avec les cadreurs l'emplacement de « Automatisation » dans la nav (actuellement en dernière position) et son lien avec une séance réelle plutôt que des noms d'exemple fixes.
